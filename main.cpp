@@ -1,12 +1,39 @@
 #include <iostream>
-#include "transformar-binario.cpp"
+#include <fstream>
+#include "include/Game.h"
+#include "include/CSVConverter.h"
+#include "include/GameDAO.h"
+#include "include/GameController.h"
+
+// Inclusão dos fontes para compilação simplificada (padrão do projeto)
+#include "src/Game.cpp"
+#include "src/CSVConverter.cpp"
+#include "src/GameDAO.cpp"
+#include "src/GameController.cpp"
 
 using namespace std;
 
 int main() {
-    ler_arquivo_csv leitor;
-    cout << "Iniciando conversao..." << endl;
-    leitor.converter_csv_binario();
-    cout << "Conversao concluida com sucesso!" << endl;
+    string csvFilename = "steam.csv";
+    string binFilename = "steam.bin";
+
+    // Verifica se arquivo binário existe, senão converte
+    ifstream check(binFilename);
+    if (!check.is_open()) {
+        cout << binFilename << " not found. Converting from " << csvFilename << "..." << endl;
+        CSVConverter converter(csvFilename);
+        if (!converter.convertToBinary(binFilename)) {
+            cerr << "Erro fatal na conversão do CSV!" << endl;
+            return 1;
+        }
+    }
+    check.close();
+
+    // Inicializa o Controller (MVC)
+    GameController controller(binFilename);
+    
+    // Inicia a aplicação
+    controller.run();
+
     return 0;
 }
