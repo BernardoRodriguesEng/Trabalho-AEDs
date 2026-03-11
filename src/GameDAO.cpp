@@ -160,18 +160,27 @@ bool GameDAO::searchByName(const string& targetName, Game& found, long& pos) {
 
 // Looks up an AppID in the index file to quickly find its byte offset in the main file
 long GameDAO::getOffsetFromIndex(int appid) {
-    ifstream idxFile(indexFileName, ios::binary);
+    ifstream idxFile(indexFileName, ios::binary | ios::ate);
     if (!idxFile) return -1;
-    
-    int id;
-    long offset;
-    while (idxFile.read(reinterpret_cast<char*>(&id), sizeof(int))) {
+
+    long fileSize = idxFile.tellg();
+    int entrySize = sizeof(int) + sizeof(long);
+
+    for (long pos = fileSize - entrySize; pos >= 0; pos -= entrySize) {
+        idxFile.seekg(pos);
+
+        int id;
+        long offset;
+
+        idxFile.read(reinterpret_cast<char*>(&id), sizeof(int));
         idxFile.read(reinterpret_cast<char*>(&offset), sizeof(long));
+
         if (id == appid) {
             idxFile.close();
             return offset;
         }
     }
+
     idxFile.close();
     return -1;
 }
@@ -193,16 +202,29 @@ bool GameDAO::searchById(int appid, Game& found, long& pos) {
 }
 
 // Updates a game by marking the old record as deleted and creating a new one
-bool GameDAO::update(const string& targetName, const Game& updatedGame) {
-    Game g;
+bool GameDAO::update(const string& targetName, const Game& updatedGame){
+    Game oldGame;
     long pos;
-    if (searchByName(targetName, g, pos)) {
-        remove(targetName);
-        Game temp = updatedGame;
-        create(temp);
-        return true;
+
+    //Update procura o jogo aqui
+    if(!searchByName(targetName, oldGame, pos)){
+        return false;
     }
-    return false;
+
+    //Caso achar, marca o registro antigo como excluído
+    fstream file(fileName, ios::binary | ios::in | ios::out);
+    file.seekp(pos);
+    char lapide = '*';
+    file.write(&lapide, 1);
+    file.close();
+
+    //Cria um novo registro com o mesmo ID
+    Game newGame = updatedGame;
+    newGame.appid = oldGame.appid;
+    newGame.setActive(true);
+    create(newGame);
+
+    return true;
 }
 
 // Returns the current auto-incremented AppID for new records

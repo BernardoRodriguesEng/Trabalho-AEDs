@@ -128,19 +128,96 @@ void GameController::handleAddGame() {
 }
 
 // Finds a game by name and prompts the user to update its price
-void GameController::handleUpdateGame() {
+void GameController::handleUpdateGame(){
     string name;
-    cout << "Enter Name of the game to update: "; getline(cin, name);
+    cout << "Enter Name of the game to update: ";
+    getline(cin, name);
+    
     Game g;
     long pos;
-    if (dao.searchByName(name, g, pos)) {
-        cout << "Game found! Current price: $" << g.price << endl;
-        g.price = safeReadFloat("New price: ");
-        if (dao.update(name, g)) {
-            cout << ">> Game successfully updated." << endl;
-        }
-    } else {
+
+    if(!dao.searchByName(name, g, pos)){
         cout << ">> Game not found." << endl;
+        return;
+    }
+
+    cout << "\n>> Game found! <<" << endl;
+    g.print();
+
+    bool editing = true;
+
+    while (editing) {
+
+        cout << "\n>> What do you want to update? <<" << endl;
+        cout << "1 - Name" << endl;
+        cout << "2 - Release Date\n";
+        cout << "3 - Developer\n";
+        cout << "4 - Publisher\n";
+        cout << "5 - Platforms\n";
+        cout << "6 - Price\n";
+        cout << "7 - Required Age\n";
+        cout << "8 - Achievements\n";
+        cout << "9 - Positive Ratings\n";
+        cout << "10 - Negative Ratings\n";
+        cout << "0 - Finish editing\n";
+
+        int op = safeReadInt("Choice: ");
+
+        switch(op){
+            case 1:
+                g.name = safeReadString("New name: ");
+                break;
+
+            case 2:
+                g.release_date.year = safeReadInt("New year: ");
+                g.release_date.month = safeReadInt("New month: ");
+                g.release_date.day = safeReadInt("New day: ");
+                break;
+
+            case 3:
+                g.developer = safeReadString("New developer: ");
+                break;
+
+            case 4:
+                g.publisher = safeReadString("New publisher: ");
+                break;
+
+            case 5:
+                g.platforms = safeReadString("New platforms: ");
+                break;
+
+            case 6:
+                g.price = safeReadFloat("New price: ");
+                break;
+
+            case 7:
+                g.required_age = safeReadInt("New required age: ");
+                break;
+
+            case 8:
+                g.achievements = safeReadInt("New achievements: ");
+                break;
+
+            case 9:
+                g.positive_ratings = safeReadInt("New positive ratings: ");
+                break;
+
+            case 10:
+                g.negative_ratings = safeReadInt("New negative ratings: ");
+                break;
+
+            case 0:
+                editing = false;
+                break;
+
+            default:
+                cout << ">> Invalid option." << endl;
+        }
+    }
+    if(dao.update(name, g)){
+        cout << ">> Game information updated." << endl;
+    } else {
+        cout << ">> Error updating the game." << endl;
     }
 }
 
