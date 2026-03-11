@@ -1,11 +1,15 @@
 #include "../include/GameController.h"
 #include <iostream>
 #include <limits>
+#include <sstream>
+#include <vector>
 
 using namespace std;
 
+// Constructor: Initializes the controller with the database filename and its DAO
 GameController::GameController(const string& binFilename) : binFilename(binFilename), dao(binFilename) {}
 
+// Main loop of the controller that displays the menu and handles user
 void GameController::run() {
     int op = 0;
     do {
@@ -40,6 +44,7 @@ void GameController::run() {
     } while (op != 7);
 }
 
+// Prompts the user for a game name and searches for it in the database
 void GameController::handleSearchByName() {
     string name;
     cout << "Enter Name: "; getline(cin, name);
@@ -53,6 +58,7 @@ void GameController::handleSearchByName() {
     }
 }
 
+// Prompts the user for a game ID and searches for it in the database
 void GameController::handleSearchByID() {
     int id = safeReadInt("Enter ID: ");
     Game g;
@@ -65,27 +71,63 @@ void GameController::handleSearchByID() {
     }
 }
 
+// Collects all required fields from the user and adds a new game to the database
 void GameController::handleAddGame() {
     Game g;
-    int appid = dao.getNextAppId();
-    char name[150], dev[150];
 
-    cout << ">> Automatic AppID assigned: " << appid << endl;
-    cout << "Enter Name: "; cin.getline(name, 150);
-    cout << "Enter Developer: "; cin.getline(dev, 150);
-    float price = safeReadFloat("Enter Price: ");
+    int appidChoice = safeReadInt("Enter AppID (default is 0): ");
+    g.appid = (appidChoice == 0) ? dao.getNextAppId() : appidChoice;
 
-    g.appid = appid;
-    g.name = string(name);
-    g.developer = string(dev);
-    g.price = price;
-    g.release_date = {0, 0, 0};
-    g.english = true;
+    cout << ">> AppID assigned: " << g.appid << endl;
+
+    g.name = safeReadString("Enter Name: ");
+    
+    g.release_date.year = safeReadInt("Enter Release Year (YYYY): ");
+    g.release_date.month = safeReadInt("Enter Release Month (MM): ");
+    g.release_date.day = safeReadInt("Enter Release Day (DD): ");
+    
+    int eng = safeReadInt("Is English supported? (1 for yes, 0 for no): ");
+    g.english = (eng == 1);
+    
+    g.developer = safeReadString("Enter Developer: ");
+    g.publisher = safeReadString("Enter Publisher: ");
+    g.platforms = safeReadString("Enter Platforms (ex: windows;mac;linux): ");
+    g.required_age = safeReadInt("Enter Required Age: ");
+
+    auto splitString = [](const string& s, char delimiter) {
+        vector<string> tokens;
+        string token;
+        istringstream tokenStream(s);
+        while (getline(tokenStream, token, delimiter)) {
+            if (!token.empty()) tokens.push_back(token);
+        }
+        return tokens;
+    };
+
+    string cats = safeReadString("Enter Categories (separated by ;): ");
+    g.categories = splitString(cats, ';');
+    
+    string gens = safeReadString("Enter Genres (separated by ;): ");
+    g.genres = splitString(gens, ';');
+    
+    string tags = safeReadString("Enter Tags (separated by ;): ");
+    g.steamspy_tags = splitString(tags, ';');
+    
+    g.achievements = safeReadInt("Enter Achievements count: ");
+    g.positive_ratings = safeReadInt("Enter Positive Ratings: ");
+    g.negative_ratings = safeReadInt("Enter Negative Ratings: ");
+    g.average_playtime = safeReadInt("Enter Average Playtime (minutes): ");
+    g.median_playtime = safeReadInt("Enter Median Playtime (minutes): ");
+    g.owners = safeReadString("Enter Owners range (ex: 10000-20000): ");
+    
+    g.price = safeReadFloat("Enter Price: ");
+    g.setActive(true);
 
     dao.create(g);
-    cout << ">> Game successfully added (ID " << appid << ")." << endl;
+    cout << ">> Game successfully added (ID " << g.appid << ")." << endl;
 }
 
+// Finds a game by name and prompts the user to update its price
 void GameController::handleUpdateGame() {
     string name;
     cout << "Enter Name of the game to update: "; getline(cin, name);
@@ -102,6 +144,7 @@ void GameController::handleUpdateGame() {
     }
 }
 
+// Locates a game by name and softly deletes it
 void GameController::handleDeleteGame() {
     string name;
     cout << "Enter Name of the game to delete: "; getline(cin, name);
@@ -112,10 +155,12 @@ void GameController::handleDeleteGame() {
     }
 }
 
+// Lists the 20 most recently added active games in the database
 void GameController::handleListGames() {
     dao.listActive(20);
 }
 
+// Utility to safely read an integer from standard input, handling invalid formats
 int GameController::safeReadInt(const string& prompt) {
     int val;
     while (true) {
@@ -130,6 +175,7 @@ int GameController::safeReadInt(const string& prompt) {
     }
 }
 
+// Utility to safely read a floating point number from standard input
 float GameController::safeReadFloat(const string& prompt) {
     float val;
     while (true) {
@@ -142,4 +188,12 @@ float GameController::safeReadFloat(const string& prompt) {
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
         cout << ">> Invalid entry. Please type a real number (ex: 19.90)." << endl;
     }
+}
+
+// Utility to safely read a string from standard input
+string GameController::safeReadString(const string& prompt) {
+    string val;
+    cout << prompt;
+    getline(cin, val);
+    return val;
 }

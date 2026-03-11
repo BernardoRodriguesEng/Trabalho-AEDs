@@ -6,14 +6,17 @@
 
 using namespace std;
 
+// Constructor: Opens the CSV file for reading
 CSVConverter::CSVConverter(const string& csvFilename) {
     csvFile.open(csvFilename);
 }
 
+// Destructor: Ensures the CSV file is closed
 CSVConverter::~CSVConverter() {
     if (csvFile.is_open()) csvFile.close();
 }
 
+// Utility function to split a simple delimited string into a vector of strings
 vector<string> split(const string& s, char delimiter) {
     vector<string> tokens;
     string token;
@@ -24,6 +27,7 @@ vector<string> split(const string& s, char delimiter) {
     return tokens;
 }
 
+// Parses a basic YYYY-MM-DD string format into a Date struct
 Date parseDate(const string& s) {
     Date d = {0, 0, 0};
     // Expected format: YYYY-MM-DD
@@ -37,6 +41,7 @@ Date parseDate(const string& s) {
     return d;
 }
 
+// Reads and parses a single line from the CSV file into a Game object
 Game CSVConverter::parseLine() {
     string line;
     if (!getline(csvFile, line) || line.empty()) return Game();
@@ -85,6 +90,7 @@ Game CSVConverter::parseLine() {
     }
 }
 
+// Performs the full conversion from the opened CSV file into the binary format and index
 bool CSVConverter::convertToBinary(const string& binFilename) {
     if (!csvFile.is_open()) return false;
 

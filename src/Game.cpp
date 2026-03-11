@@ -5,6 +5,7 @@
 
 using namespace std;
 
+// Default constructor: Initializes a game with zero/empty values
 Game::Game() : lapide(' '), appid(0), english(false), required_age(0), 
                achievements(0), positive_ratings(0), negative_ratings(0), 
                average_playtime(0), median_playtime(0), price(0.0f) {
@@ -18,6 +19,7 @@ int Game::getAppId() const { return appid; }
 float Game::getPrice() const { return price; }
 string Game::getDeveloper() const { return developer; }
 
+// Prints the game's details to the standard output
 void Game::print() const {
     if (!isActive()) return;
     cout << "   [" << appid << "] " << name << endl;
@@ -28,10 +30,16 @@ void Game::print() const {
     for (size_t i = 0; i < genres.size(); ++i) {
         cout << genres[i] << (i == genres.size() - 1 ? "" : ", ");
     }
-    cout << endl;
+    cout << "\n   Tags: ";
+    for (size_t i = 0; i < steamspy_tags.size(); ++i) {
+        cout << steamspy_tags[i] << (i == steamspy_tags.size() - 1 ? "" : ", ");
+    }
+    cout << "\n   Reviews: " << positive_ratings << " Positive / " << negative_ratings << " Negative" << endl;
+    cout << "   Playtime: " << average_playtime << " avg min / " << median_playtime << " median min" << endl;
     cout << "-----------------------------------" << endl;
 }
 
+// Calculates the exact byte size needed to serialize this game object
 int Game::getSerializationSize() const {
     int size = sizeof(char) + sizeof(int); // lapide + appid
     size += sizeof(unsigned short) + name.length();
@@ -58,6 +66,7 @@ int Game::getSerializationSize() const {
     return size;
 }
 
+// Helper logic: Writes a string preceded by its 2-byte length to a buffer
 void Game::writeString(char*& ptr, const string& str) const {
     unsigned short len = (unsigned short)str.length();
     memcpy(ptr, &len, sizeof(unsigned short));
@@ -66,6 +75,7 @@ void Game::writeString(char*& ptr, const string& str) const {
     ptr += len;
 }
 
+// Helper logic: Writes a vector of strings to a buffer
 void Game::writeVector(char*& ptr, const vector<string>& vec) const {
     unsigned short count = (unsigned short)vec.size();
     memcpy(ptr, &count, sizeof(unsigned short));
@@ -75,6 +85,7 @@ void Game::writeVector(char*& ptr, const vector<string>& vec) const {
     }
 }
 
+// Serializes all game properties into the provided byte buffer
 void Game::serialize(char* buffer) const {
     char* ptr = buffer;
     memcpy(ptr, &lapide, sizeof(char)); ptr += sizeof(char);
@@ -100,6 +111,7 @@ void Game::serialize(char* buffer) const {
     memcpy(ptr, &price, sizeof(float)); ptr += sizeof(float);
 }
 
+// Helper logic: Reads a variable-length string from a byte buffer
 void Game::readString(const char*& ptr, string& str) {
     unsigned short len;
     memcpy(&len, ptr, sizeof(unsigned short));
@@ -108,6 +120,7 @@ void Game::readString(const char*& ptr, string& str) {
     ptr += len;
 }
 
+// Helper logic: Reads a vector of strings from a byte buffer
 void Game::readVector(const char*& ptr, vector<string>& vec) {
     unsigned short count;
     memcpy(&count, ptr, sizeof(unsigned short));
@@ -120,6 +133,7 @@ void Game::readVector(const char*& ptr, vector<string>& vec) {
     }
 }
 
+// Deserializes all properties of the game straight from a byte buffer
 void Game::deserialize(const char* buffer) {
     const char* ptr = buffer;
     memcpy(&lapide, ptr, sizeof(char)); ptr += sizeof(char);
@@ -145,6 +159,7 @@ void Game::deserialize(const char* buffer) {
     memcpy(&price, ptr, sizeof(float)); ptr += sizeof(float);
 }
 
+// Helper logic: Reads a string from an input stream safely
 void Game::readStringFromStream(istream& is, string& str) {
     unsigned short len;
     is.read(reinterpret_cast<char*>(&len), sizeof(unsigned short));
@@ -155,6 +170,7 @@ void Game::readStringFromStream(istream& is, string& str) {
     delete[] buf;
 }
 
+// Helper logic: Reads a vector of strings from an input stream
 void Game::readVectorFromStream(istream& is, vector<string>& vec) {
     unsigned short count;
     is.read(reinterpret_cast<char*>(&count), sizeof(unsigned short));
@@ -166,6 +182,7 @@ void Game::readVectorFromStream(istream& is, vector<string>& vec) {
     }
 }
 
+// Deserializes all game properties seamlessly from an input stream
 void Game::readFromStream(istream& is) {
     is.read(&lapide, sizeof(char));
     is.read(reinterpret_cast<char*>(&appid), sizeof(int));

@@ -16,7 +16,7 @@ int main() {
     string csvFilename = "steam.csv";
     string binFilename = "steam.bin";
 
-    // Verifica se arquivo binário existe, senão converte
+    // Verifies if the binary file exists
     ifstream check(binFilename);
     if (!check.is_open()) {
         cout << binFilename << " not found. Converting from " << csvFilename << "..." << endl;
@@ -28,10 +28,10 @@ int main() {
     }
     check.close();
 
-    // Inicializa o Controller (MVC)
+    // Awakes controller (MVC)
     GameController controller(binFilename);
     
-    // Inicia a aplicação
+    // Starts application
     controller.run();
 
     return 0;

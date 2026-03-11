@@ -18,6 +18,7 @@ private:
 
     int safeReadInt(const std::string& prompt);
     float safeReadFloat(const std::string& prompt);
+    std::string safeReadString(const std::string& prompt);
 
 public:
     GameController(const std::string& binFilename);
