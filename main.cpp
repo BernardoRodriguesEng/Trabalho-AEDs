@@ -5,7 +5,6 @@
 #include "include/GameDAO.h"
 #include "include/GameController.h"
 
-// Inclusão dos fontes para compilação simplificada (padrão do projeto)
 #include "src/Game.cpp"
 #include "src/CSVConverter.cpp"
 #include "src/GameDAO.cpp"
