@@ -22,7 +22,7 @@ void GameController::run() {
         if (!(cin >> op)) {
             cin.clear();
             cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << ">> Opcao invalida." << endl;
+            cout << ">> Invalid option." << endl;
             continue;
         }
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
@@ -34,8 +34,8 @@ void GameController::run() {
             case 4: handleUpdateGame(); break;
             case 5: handleDeleteGame(); break;
             case 6: handleListGames(); break;
-            case 7: cout << "Saindo..." << endl; break;
-            default: cout << ">> Opcao invalida." << endl;
+            case 7: cout << "Exiting..." << endl; break;
+            default: cout << ">> Invalid option." << endl;
         }
     } while (op != 7);
 }
@@ -46,10 +46,10 @@ void GameController::handleSearchByName() {
     Game g;
     long pos;
     if (dao.searchByName(name, g, pos)) {
-        cout << "\n>> JOGO ENCONTRADO! <<" << endl;
+        cout << "\n>> GAME FOUND! <<" << endl;
         g.print();
     } else {
-        cout << ">> Jogo nao encontrado." << endl;
+        cout << ">> Game not found." << endl;
     }
 }
 
@@ -58,10 +58,10 @@ void GameController::handleSearchByID() {
     Game g;
     long pos;
     if (dao.searchById(id, g, pos)) {
-        cout << "\n>> JOGO ENCONTRADO! <<" << endl;
+        cout << "\n>> GAME FOUND! <<" << endl;
         g.print();
     } else {
-        cout << ">> Jogo nao encontrado." << endl;
+        cout << ">> Game not found." << endl;
     }
 }
 
@@ -83,7 +83,7 @@ void GameController::handleAddGame() {
     g.english = true;
 
     dao.create(g);
-    cout << ">> Jogo adicionado com sucesso (ID " << appid << ")." << endl;
+    cout << ">> Game successfully added (ID " << appid << ")." << endl;
 }
 
 void GameController::handleUpdateGame() {
@@ -92,13 +92,13 @@ void GameController::handleUpdateGame() {
     Game g;
     long pos;
     if (dao.searchByName(name, g, pos)) {
-        cout << "Jogo encontrado! Preco Atual: $" << g.price << endl;
-        g.price = safeReadFloat("Novo Preco: ");
+        cout << "Game found! Current price: $" << g.price << endl;
+        g.price = safeReadFloat("New price: ");
         if (dao.update(name, g)) {
-            cout << ">> Jogo atualizado com sucesso." << endl;
+            cout << ">> Game successfully updated." << endl;
         }
     } else {
-        cout << ">> Jogo nao encontrado." << endl;
+        cout << ">> Game not found." << endl;
     }
 }
 
@@ -106,9 +106,9 @@ void GameController::handleDeleteGame() {
     string name;
     cout << "Enter Name of the game to delete: "; getline(cin, name);
     if (dao.remove(name)) {
-        cout << ">> Jogo marcado como deletado (exclusao logica)." << endl;
+        cout << ">> Game marked for deletion (logical exclusion)." << endl;
     } else {
-        cout << ">> Jogo nao encontrado." << endl;
+        cout << ">> Game not found." << endl;
     }
 }
 
@@ -126,7 +126,7 @@ int GameController::safeReadInt(const string& prompt) {
         }
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        cout << ">> Entrada invalida. Digite um numero inteiro." << endl;
+        cout << ">> Invalid entry. Please type a whole number." << endl;
     }
 }
 
@@ -140,6 +140,6 @@ float GameController::safeReadFloat(const string& prompt) {
         }
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        cout << ">> Entrada invalida. Digite um numero real (ex: 19.90)." << endl;
+        cout << ">> Invalid entry. Please type a real number (ex: 19.90)." << endl;
     }
 }
