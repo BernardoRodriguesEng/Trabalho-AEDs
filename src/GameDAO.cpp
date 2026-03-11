@@ -203,14 +203,14 @@ void GameDAO::listActive(int limit) {
     // Abre o índice no final para pegar o tamanho
     ifstream idxFile(indexFileName, ios::binary | ios::ate);
     if (!idxFile) {
-        cout << ">> Erro ao abrir arquivo de indice." << endl;
+        cout << ">> Error while opening the index file." << endl;
         return;
     }
 
     long fileSize = idxFile.tellg();
     int entrySize = sizeof(int) + sizeof(long);
     if (fileSize < entrySize) {
-        cout << ">> O banco de dados esta vazio." << endl;
+        cout << ">> The database is empty." << endl;
         idxFile.close();
         return;
     }
@@ -235,7 +235,7 @@ void GameDAO::listActive(int limit) {
     ifstream inFile(fileName, ios::binary);
     if (!inFile) return;
 
-    cout << "\n--- Exibindo os ultimos " << offsets.size() << " registros ativos ---" << endl;
+    cout << "\n--- Showing the last few games in the database " << offsets.size() << " active entries ---" << endl;
     for (long off : offsets) {
         inFile.seekg(off, ios::beg);
         Game temp;
