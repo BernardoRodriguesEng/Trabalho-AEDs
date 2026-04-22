@@ -4,11 +4,19 @@
 #include "include/CSVConverter.h"
 #include "include/GameDAO.h"
 #include "include/GameController.h"
+#include "include/Review.h"
+#include "include/ReviewDAO.h"
+#include "include/OrdenacaoExterna.h"
 
 #include "src/Game.cpp"
 #include "src/CSVConverter.cpp"
 #include "src/GameDAO.cpp"
 #include "src/GameController.cpp"
+#include "src/Review.cpp"
+#include "src/ReviewDAO.cpp"
+#include "src/Hash.cpp"
+#include "src/HashExtensivel.cpp"
+#include "src/OrdenacaoExterna.cpp"
 
 using namespace std;
 
@@ -27,6 +35,9 @@ int main() {
         }
     }
     check.close();
+
+    OrdenacaoExterna ordenacao;
+    ordenacao.ordenarPorNome(binFilename, "steam_ordenado.bin");
 
     // Awakes controller (MVC)
     GameController controller(binFilename);

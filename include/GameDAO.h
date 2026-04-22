@@ -4,6 +4,7 @@
 #include <string>
 #include <fstream>
 #include "Game.h"
+#include "HashExtensivel.h"
 
 class GameDAO {
 private:
@@ -11,9 +12,13 @@ private:
     std::string indexFileName;
     int lastID;
 
+    HashExtensivel hash;
+
     void loadLastID();
     void saveLastID();
     std::string toLowerCase(std::string str);
+
+    void reconstruirHash();
 
 public:
     GameDAO(const std::string& fileName);
@@ -26,7 +31,6 @@ public:
     void listActive(int limit);
     
     int getNextAppId();
-    long getOffsetFromIndex(int appid);
 };
 
 #endif

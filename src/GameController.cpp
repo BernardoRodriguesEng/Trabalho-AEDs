@@ -1,4 +1,5 @@
 #include "../include/GameController.h"
+#include "../include/ReviewDAO.h"
 #include <iostream>
 #include <limits>
 #include <sstream>
@@ -47,12 +48,31 @@ void GameController::run() {
 // Prompts the user for a game name and searches for it in the database
 void GameController::handleSearchByName() {
     string name;
-    cout << "Enter Name: "; getline(cin, name);
+    cout << "Enter Name: ";
+    getline(cin, name);
+
     Game g;
     long pos;
+
     if (dao.searchByName(name, g, pos)) {
         cout << "\n>> GAME FOUND! <<" << endl;
         g.print();
+
+        ReviewDAO reviewDAO("reviews.bin");
+        vector<Review> reviews = reviewDAO.buscarPorJogo(g.getAppId());
+
+        cout << "\n--- Reviews ---\n";
+
+        if (reviews.empty()) {
+            cout << "No reviews yet.\n";
+        } else {
+            for (auto& r : reviews) {
+                cout << r.usuario << ": "
+                     << r.comentario
+                     << " (" << r.nota << ")\n";
+            }
+        }
+
     } else {
         cout << ">> Game not found." << endl;
     }
@@ -63,9 +83,26 @@ void GameController::handleSearchByID() {
     int id = safeReadInt("Enter ID: ");
     Game g;
     long pos;
+
     if (dao.searchById(id, g, pos)) {
         cout << "\n>> GAME FOUND! <<" << endl;
         g.print();
+
+        ReviewDAO reviewDAO("reviews.bin");
+        vector<Review> reviews = reviewDAO.buscarPorJogo(g.getAppId());
+
+        cout << "\n--- Reviews ---\n";
+
+        if (reviews.empty()) {
+            cout << "No reviews yet.\n";
+        } else {
+            for (auto& r : reviews) {
+                cout << r.usuario << ": "
+                     << r.comentario
+                     << " (" << r.nota << ")\n";
+            }
+        }
+
     } else {
         cout << ">> Game not found." << endl;
     }

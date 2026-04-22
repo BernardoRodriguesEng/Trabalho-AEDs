@@ -6,17 +6,18 @@
 
 using namespace std;
 
-// Constructor: initializes filenames and loads the next available ID
-GameDAO::GameDAO(const string& fileName) : fileName(fileName) {
+GameDAO::GameDAO(const string& fileName) 
+    : fileName(fileName), hash(4) {
+
     indexFileName = fileName;
     size_t dotPos = indexFileName.find_last_of(".");
     if (dotPos != string::npos) indexFileName = indexFileName.substr(0, dotPos);
     indexFileName += "_index.bin";
     
     loadLastID();
+    reconstruirHash();
 }
 
-// Reads the header of the binary file to recover the last used AppID
 void GameDAO::loadLastID() {
     ifstream inFile(fileName, ios::binary);
     if (inFile) {
@@ -27,7 +28,6 @@ void GameDAO::loadLastID() {
     }
 }
 
-// Updates the header of the binary file with the latest unused AppID
 void GameDAO::saveLastID() {
     fstream outFile(fileName, ios::binary | ios::in | ios::out);
     if (outFile) {
@@ -37,78 +37,96 @@ void GameDAO::saveLastID() {
     }
 }
 
-// Appends a new Game object to both the binary database and the index file
-void GameDAO::create(Game& g) {
-    fstream outFile(fileName, ios::binary | ios::in | ios::out);
-    if (!outFile) {
-        outFile.open(fileName, ios::binary | ios::out);
-        if (outFile) {
-            int zero = 0;
-            outFile.write(reinterpret_cast<char*>(&zero), sizeof(int));
-            outFile.close();
-            outFile.open(fileName, ios::binary | ios::in | ios::out);
+void GameDAO::reconstruirHash() {
+    ifstream file(fileName, ios::binary);
+
+    if (!file) return;
+
+    file.seekg(sizeof(int), ios::beg);
+
+    while (file.peek() != EOF) {
+        long pos = file.tellg();
+
+        Game g;
+        g.readFromStream(file);
+
+        if (g.isActive()) {
+            hash.inserir(g.appid, pos);
         }
     }
 
-    if (outFile) {
-        outFile.seekp(0, ios::end);
-        long offset = outFile.tellp();
-        
-        if (offset == 0) {
-            int zero = 0;
-            outFile.write(reinterpret_cast<char*>(&zero), sizeof(int));
-            offset = sizeof(int);
-        }
-
-        if (g.appid == 0) {
-            lastID++;
-            g.appid = lastID;
-        } else if (g.appid > lastID) {
-            lastID = g.appid;
-        }
-
-        int size = g.getSerializationSize();
-        char* buffer = new char[size];
-        g.serialize(buffer);
-        outFile.write(buffer, size);
-        delete[] buffer;
-        outFile.close();
-
-        saveLastID();
-
-        ofstream idxFile(indexFileName, ios::binary | ios::app);
-        if (idxFile) {
-            idxFile.seekp(0, ios::end);
-            idxFile.write(reinterpret_cast<const char*>(&g.appid), sizeof(int));
-            idxFile.write(reinterpret_cast<const char*>(&offset), sizeof(long));
-            idxFile.close();
-        }
-    }
+    file.close();
 }
 
-// Utility to convert a string to lowercase for case-insensitive comparisons
+void GameDAO::create(Game& g) {
+    fstream outFile(fileName, ios::binary | ios::in | ios::out);
+
+    if (!outFile) {
+        outFile.open(fileName, ios::binary | ios::out);
+        int zero = 0;
+        outFile.write(reinterpret_cast<char*>(&zero), sizeof(int));
+        outFile.close();
+        outFile.open(fileName, ios::binary | ios::in | ios::out);
+    }
+
+    outFile.seekp(0, ios::end);
+    long offset = outFile.tellp();
+
+    if (g.appid == 0) {
+        lastID++;
+        g.appid = lastID;
+    } else if (g.appid > lastID) {
+        lastID = g.appid;
+    }
+
+    int size = g.getSerializationSize();
+    char* buffer = new char[size];
+
+    g.serialize(buffer);
+    outFile.write(buffer, size);
+
+    delete[] buffer;
+    outFile.close();
+
+    saveLastID();
+
+    hash.inserir(g.appid, offset);
+}
+
+bool GameDAO::searchById(int appid, Game& found, long& pos) {
+    long offset;
+    bool achou = hash.buscar(appid, offset);
+
+    if (!achou) return false;
+
+    ifstream inFile(fileName, ios::binary);
+    if (!inFile) return false;
+
+    inFile.seekg(offset);
+    found.readFromStream(inFile);
+    pos = offset;
+
+    inFile.close();
+    return found.isActive();
+}
+
 string GameDAO::toLowerCase(string str) {
     transform(str.begin(), str.end(), str.begin(), ::tolower);
     return str;
 }
 
-// Skips a dynamically sized string in the binary stream to fast-forward reading
 void skipString(istream& is) {
     unsigned short len;
     is.read(reinterpret_cast<char*>(&len), sizeof(unsigned short));
     is.seekg(len, ios::cur);
 }
 
-// Skips a dynamically sized vector of strings in the binary stream
 void skipVector(istream& is) {
     unsigned short count;
     is.read(reinterpret_cast<char*>(&count), sizeof(unsigned short));
-    for (int i = 0; i < count; ++i) {
-        skipString(is);
-    }
+    for (int i = 0; i < count; ++i) skipString(is);
 }
 
-// Sequentially searches the binary database for a game matching the given name
 bool GameDAO::searchByName(const string& targetName, Game& found, long& pos) {
     ifstream inFile(fileName, ios::binary);
     if (!inFile) return false;
@@ -119,17 +137,20 @@ bool GameDAO::searchByName(const string& targetName, Game& found, long& pos) {
 
     while (inFile.peek() != EOF) {
         long currentPos = inFile.tellg();
+
         char lapide;
         if (!inFile.read(&lapide, 1)) break;
-        
+
         int appid;
         inFile.read(reinterpret_cast<char*>(&appid), sizeof(int));
-        
+
         unsigned short nameLen;
         inFile.read(reinterpret_cast<char*>(&nameLen), sizeof(unsigned short));
+
         char* nameBuf = new char[nameLen + 1];
         inFile.read(nameBuf, nameLen);
         nameBuf[nameLen] = '\0';
+
         string currentName(nameBuf);
         delete[] nameBuf;
 
@@ -154,91 +175,39 @@ bool GameDAO::searchByName(const string& targetName, Game& found, long& pos) {
             inFile.seekg(sizeof(float), ios::cur);
         }
     }
+
     inFile.close();
     return false;
 }
 
-// Looks up an AppID in the index file to quickly find its byte offset in the main file
-long GameDAO::getOffsetFromIndex(int appid) {
-    ifstream idxFile(indexFileName, ios::binary | ios::ate);
-    if (!idxFile) return -1;
-
-    long fileSize = idxFile.tellg();
-    int entrySize = sizeof(int) + sizeof(long);
-
-    for (long pos = fileSize - entrySize; pos >= 0; pos -= entrySize) {
-        idxFile.seekg(pos);
-
-        int id;
-        long offset;
-
-        idxFile.read(reinterpret_cast<char*>(&id), sizeof(int));
-        idxFile.read(reinterpret_cast<char*>(&offset), sizeof(long));
-
-        if (id == appid) {
-            idxFile.close();
-            return offset;
-        }
-    }
-
-    idxFile.close();
-    return -1;
-}
-
-// Finds a game internally using the index file with its ID for O(1)
-bool GameDAO::searchById(int appid, Game& found, long& pos) {
-    long offset = getOffsetFromIndex(appid);
-    if (offset == -1) return false;
-    
-    ifstream inFile(fileName, ios::binary);
-    if (!inFile) return false;
-    
-    inFile.seekg(offset);
-    found.readFromStream(inFile);
-    pos = offset;
-
-    inFile.close();
-    return found.isActive();
-}
-
-// Updates a game by marking the old record as deleted and creating a new one
 bool GameDAO::update(const string& targetName, const Game& updatedGame){
     Game oldGame;
     long pos;
 
-    //Update procura o jogo aqui
-    if(!searchByName(targetName, oldGame, pos)){
-        return false;
-    }
+    if(!searchByName(targetName, oldGame, pos)) return false;
 
-    //Caso achar, marca o registro antigo como excluído
     fstream file(fileName, ios::binary | ios::in | ios::out);
     file.seekp(pos);
     char lapide = '*';
     file.write(&lapide, 1);
     file.close();
 
-    //Cria um novo registro com o mesmo ID
     Game newGame = updatedGame;
     newGame.appid = oldGame.appid;
     newGame.setActive(true);
+
     create(newGame);
 
     return true;
 }
 
-// Returns the current auto-incremented AppID for new records
-int GameDAO::getNextAppId() {
-    return lastID + 1;
-}
-
-// Performs a logical exclusion by placing a tombstone marker ('*') at the record's start
 bool GameDAO::remove(const string& targetName) {
     Game g;
     long pos; 
-    if (searchByName(targetName, g, pos)) { 
+
+    if (searchByName(targetName, g, pos)) {
         fstream file(fileName, ios::binary | ios::in | ios::out);
-        file.seekp(pos); 
+        file.seekp(pos);
         char lapide = '*';
         file.write(&lapide, 1);
         file.close();
@@ -247,51 +216,29 @@ bool GameDAO::remove(const string& targetName) {
     return false;
 }
 
-// Lists the most recent active games in the database up to a specified limit
 void GameDAO::listActive(int limit) {
-    // Opens the index at the end to find the correct size
-    ifstream idxFile(indexFileName, ios::binary | ios::ate);
-    if (!idxFile) {
-        cout << ">> Error while opening the index file." << endl;
-        return;
-    }
-
-    long fileSize = idxFile.tellg();
-    int entrySize = sizeof(int) + sizeof(long);
-    if (fileSize < entrySize) {
-        cout << ">> The database is empty." << endl;
-        idxFile.close();
-        return;
-    }
-
-    int totalEntries = fileSize / entrySize;
-    int toRead = (totalEntries < limit) ? totalEntries : limit;
-
-    idxFile.seekg(fileSize - (toRead * entrySize), ios::beg);
-
-    vector<long> offsets;
-    int id;
-    long offset;
-    // Reads the exact quanity asked
-    for (int i = 0; i < toRead; ++i) {
-        if (idxFile.read(reinterpret_cast<char*>(&id), sizeof(int)) &&
-            idxFile.read(reinterpret_cast<char*>(&offset), sizeof(long))) {
-            offsets.push_back(offset);
-        }
-    }
-    idxFile.close();
-
     ifstream inFile(fileName, ios::binary);
     if (!inFile) return;
 
-    cout << "\n--- Showing the last few games in the database " << offsets.size() << " active entries ---" << endl;
-    for (long off : offsets) {
-        inFile.seekg(off, ios::beg);
-        Game temp;
-        temp.readFromStream(inFile);
-        if (temp.isActive()) {
-            temp.print();
+    inFile.seekg(sizeof(int), ios::beg);
+
+    cout << "\n--- Listing Games ---\n";
+
+    int count = 0;
+
+    while (inFile.peek() != EOF && count < limit) {
+        Game g;
+        g.readFromStream(inFile);
+
+        if (g.isActive()) {
+            g.print();
+            count++;
         }
     }
+
     inFile.close();
+}
+
+int GameDAO::getNextAppId() {
+    return lastID + 1;
 }
