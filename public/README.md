@@ -13,7 +13,4 @@ Este diretório contém os ativos estáticos que compõem a interface web do sis
     - Lida com o fechamento automático do servidor ao fechar a aba do navegador.
 
 ## Comunicação:
-O frontend se comunica com o backend via JSON através do endereço `http://localhost:8080`. 
-
-> [!TIP]
-> Para testar alterações na interface, basta editar estes arquivos e recarregar o navegador; não é necessário recompilar o código C++, pois o servidor serve esses arquivos dinamicamente.
+O frontend se comunica com o backend via JSON através do endereço `http://localhost:8080`.
