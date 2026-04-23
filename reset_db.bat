@@ -1,6 +1,6 @@
 @echo off
 echo Resetando o Banco de Dados...
-echo Deletando arquivos binários e índices...
+echo Deletando arquivos binarios e indices...
 
 if exist steam.bin del steam.bin
 if exist steam_index.bin del steam_index.bin
@@ -12,5 +12,5 @@ if exist temp rmdir /s /q temp
 
 echo.
 echo Banco de dados resetado com sucesso!
-echo Na próxima vez que você rodar a aplicação, ela re-importará os dados do steam.csv.
+echo Na proxima vez que voce rodar a aplicacao, ela re-importara os dados do steam.csv.
 pause
