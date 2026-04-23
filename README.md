@@ -2,13 +2,13 @@
 
 Este projeto é um sistema completo de gerenciamento de banco de dados desenvolvido para a disciplina de **Algoritmos e Estruturas de Dados III (AEDs3)**. Ele demonstra a implementação de conceitos fundamentais de armazenamento persistente, indexação e processamento de dados em larga escala utilizando C++.
 
-## 🚀 Visão Geral
+## Visão Geral
 
 O sistema permite gerenciar um catálogo de jogos da Steam, realizando operações de CRUD (Criar, Ler, Atualizar e Deletar) diretamente em arquivos binários. Diferente de bancos de dados convencionais, toda a lógica de gerenciamento de arquivos, índices de Hash e ordenação externa foi desenvolvida do zero.
 
-## 🏗️ Arquitetura do Sistema
+## Arquitetura do Sistema
 
-O projeto segue uma arquitetura moderna dividida em três camadas principais:
+O projeto segue uma arquitetura dividida em três camadas principais:
 
 1.  **Camada de Dados (Persistência)**:
     - Armazenamento em arquivos binários com registros de tamanho variável.
@@ -25,14 +25,14 @@ O projeto segue uma arquitetura moderna dividida em três camadas principais:
     - Interface web moderna e responsiva (HTML5, CSS3, JavaScript).
     - Comunicação assíncrona via JSON.
 
-## 📂 Estrutura de Pastas
+## Estrutura de Pastas
 
 - `/include`: Cabeçalhos (`.h`) com as definições de classes e interfaces.
 - `/src`: Implementações (`.cpp`) da lógica de negócios e estruturas de dados.
 - `/public`: Arquivos da interface web (frontend).
 - `/external`: Bibliotecas de terceiros (servidor HTTP).
 
-## 🛠️ Como Executar
+## Como Executar
 
 O projeto inclui scripts automatizados para facilitar a compilação no Windows:
 
