@@ -27,7 +27,7 @@ int main() {
     // Verifica se o arquivo binário existe
     ifstream check(binFilename);
     if (!check.is_open()) {
-        cout << binFilename << " não encontrado. Convertendo de " << csvFilename << "..." << endl;
+        cout << binFilename << " nao encontrado. Convertendo de " << csvFilename << "..." << endl;
         CSVConverter converter(csvFilename);
         if (!converter.convertToBinary(binFilename)) {
             cerr << "Erro fatal na conversão do CSV!" << endl;
