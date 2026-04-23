@@ -6,11 +6,21 @@ Este projeto é um sistema completo de gerenciamento de banco de dados desenvolv
 
 O sistema permite gerenciar um catálogo de jogos da Steam, realizando operações de CRUD (Criar, Ler, Atualizar e Deletar) diretamente em arquivos binários. Diferente de bancos de dados convencionais, toda a lógica de gerenciamento de arquivos, índices de Hash e ordenação externa foi desenvolvida do zero.
 
+## Requisitos do Sistema
+
+Para compilar e executar este projeto corretamente, seu ambiente deve atender aos seguintes requisitos:
+
+-   **Sistema Operacional**: Windows 10 ou superior (exigido pela biblioteca de rede).
+-   **Compilador**: MinGW-w64 com suporte a **C++17**.
+    -   Recomendado: **GCC 11.0** ou superior.
+    -   O MinGW deve ter sido instalado com o modelo de threads **posix** (necessário para `std::thread`).
+-   **Bibliotecas de Sistema**: Linkar com `ws2_32` (já incluído no script de build).
+
 ## Como Executar
 
 O projeto inclui scripts automatizados para facilitar a compilação no Windows:
 
-1.  **Compilar**: Execute o arquivo `build_db.bat`. Isso gerará o executável `a.exe`.
+1.  **Compilar**: Execute o arquivo `build_db.bat`. Ele utiliza o comando `g++ -std=c++17 main.cpp -o a.exe -lws2_32`.
 2.  **Executar**: Rode o `a.exe`. O servidor iniciará e abrirá automaticamente a porta **8080**.
 3.  **Acessar**: Abra seu navegador em `http://localhost:8080`.
 4.  **Resetar**: Se precisar limpar o banco e reimportar os dados do CSV original, execute o `reset_db.bat`.
