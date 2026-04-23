@@ -22,6 +22,16 @@ bool Bucket::buscar(int id, long &offset) {
     return false;
 }
 
+vector<long> Bucket::buscarTodos(int id) {
+    vector<long> offsets;
+    for (auto &e : registros) {
+        if (e.id == id) {
+            offsets.push_back(e.offset);
+        }
+    }
+    return offsets;
+}
+
 bool Bucket::remover(int id) {
     for (auto it = registros.begin(); it != registros.end(); ++it) {
         if (it->id == id) {

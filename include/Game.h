@@ -32,7 +32,7 @@ public:
     void deserialize(const char* buffer);
     void readFromStream(std::istream& is);
 
-    char lapide;
+    char lapide; // Controle de exclusão lógica
     int appid;
     std::string name;
     Date release_date;
@@ -53,6 +53,7 @@ public:
     float price;
 
 private:
+    // Funções auxiliares para serialização
     void writeString(char*& ptr, const std::string& str) const;
     void readString(const char*& ptr, std::string& str);
     void writeVector(char*& ptr, const std::vector<std::string>& vec) const;

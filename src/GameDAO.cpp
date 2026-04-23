@@ -70,6 +70,16 @@ void GameDAO::create(Game& g) {
     }
 
     outFile.seekp(0, ios::end);
+    
+    // Verifica se a chave primária é duplicada
+    if (g.appid != 0) {
+        long existingOffset;
+        if (hash.buscar(g.appid, existingOffset)) {
+            outFile.close();
+            throw runtime_error("AppID duplicado: " + to_string(g.appid));
+        }
+    }
+
     long offset = outFile.tellp();
 
     if (g.appid == 0) {
@@ -180,6 +190,58 @@ bool GameDAO::searchByName(const string& targetName, Game& found, long& pos) {
     return false;
 }
 
+vector<Game> GameDAO::searchAllByName(const string& targetName) {
+    vector<Game> results;
+    ifstream inFile(fileName, ios::binary);
+    if (!inFile) return results;
+
+    inFile.seekg(sizeof(int), ios::beg);
+    string lowerTargetName = toLowerCase(targetName);
+
+    while (inFile.peek() != EOF) {
+        long currentPos = inFile.tellg();
+
+        char lapide;
+        if (!inFile.read(&lapide, 1)) break;
+
+        int appid;
+        inFile.read(reinterpret_cast<char*>(&appid), sizeof(int));
+
+        unsigned short nameLen;
+        inFile.read(reinterpret_cast<char*>(&nameLen), sizeof(unsigned short));
+
+        char* nameBuf = new char[nameLen + 1];
+        inFile.read(nameBuf, nameLen);
+        nameBuf[nameLen] = '\0';
+
+        string currentName(nameBuf);
+        delete[] nameBuf;
+
+        if (lapide == ' ' && toLowerCase(currentName).find(lowerTargetName) != string::npos) {
+            inFile.seekg(currentPos);
+            Game g;
+            g.readFromStream(inFile);
+            results.push_back(g);
+        } else {
+            inFile.seekg(sizeof(Date), ios::cur);
+            inFile.seekg(sizeof(bool), ios::cur);
+            skipString(inFile);
+            skipString(inFile);
+            skipString(inFile);
+            inFile.seekg(sizeof(int), ios::cur);
+            skipVector(inFile);
+            skipVector(inFile);
+            skipVector(inFile);
+            inFile.seekg(sizeof(int) * 5, ios::cur);
+            skipString(inFile);
+            inFile.seekg(sizeof(float), ios::cur);
+        }
+    }
+
+    inFile.close();
+    return results;
+}
+
 bool GameDAO::update(const string& targetName, const Game& updatedGame){
     Game oldGame;
     long pos;
@@ -191,6 +253,9 @@ bool GameDAO::update(const string& targetName, const Game& updatedGame){
     char lapide = '*';
     file.write(&lapide, 1);
     file.close();
+
+    // Remove do hash para que create() não dispare o check de duplicata
+    hash.remover(oldGame.appid);
 
     Game newGame = updatedGame;
     newGame.appid = oldGame.appid;
@@ -222,7 +287,7 @@ void GameDAO::listActive(int limit) {
 
     inFile.seekg(sizeof(int), ios::beg);
 
-    cout << "\n--- Listing Games ---\n";
+    cout << "\n--- Listando Jogos ---\n";
 
     int count = 0;
 

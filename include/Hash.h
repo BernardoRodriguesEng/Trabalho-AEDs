@@ -18,6 +18,7 @@ public:
 
     bool inserir(int id, long offset, int capacidade);
     bool buscar(int id, long &offset);
+    vector<long> buscarTodos(int id);
 
     bool remover(int id);
 };

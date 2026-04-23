@@ -3,6 +3,9 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 using namespace std;
 
@@ -31,8 +34,10 @@ vector<string> criarBlocos(const string& arquivoEntrada, int tamanhoBloco) {
         }
 
         sort(buffer.begin(), buffer.end(), compararPorNome);
+        
+        if (!fs::exists("temp")) fs::create_directory("temp");
 
-        string nomeTemp = "bloco_" + to_string(indice++) + ".bin";
+        string nomeTemp = "temp/bloco_" + to_string(indice++) + ".bin";
         ofstream out(nomeTemp, ios::binary);
 
         for (auto& g : buffer) {
@@ -116,15 +121,28 @@ void intercalarDois(const string& a, const string& b, const string& saida) {
 }
 
 void OrdenacaoExterna::ordenarPorNome(const string& arquivoEntrada, const string& arquivoSaida) {
+    if (!fs::exists("temp")) fs::create_directory("temp");
+    
     vector<string> blocos = criarBlocos(arquivoEntrada, 100);
+    int mergeCount = 0;
 
     while (blocos.size() > 1) {
         vector<string> novos;
 
         for (size_t i = 0; i < blocos.size(); i += 2) {
             if (i + 1 < blocos.size()) {
-                string nomeSaida = "merge_" + to_string(i / 2) + ".bin";
+                string nomeSaida = "temp/merge_" + to_string(mergeCount++) + ".bin";
                 intercalarDois(blocos[i], blocos[i + 1], nomeSaida);
+                
+                // Limpa explicitamente quaisquer associações de sistema de arquivos se possível, 
+                // mas fechar os fluxos dentro de intercalarDois é a correção real.
+                try {
+                    if (fs::exists(blocos[i])) fs::remove(blocos[i]);
+                    if (fs::exists(blocos[i + 1])) fs::remove(blocos[i + 1]);
+                } catch (const fs::filesystem_error& e) {
+                    cerr << "Aviso: Não foi possível remover o arquivo temporário: " << e.what() << endl;
+                }
+                
                 novos.push_back(nomeSaida);
             } else {
                 novos.push_back(blocos[i]);
@@ -135,6 +153,18 @@ void OrdenacaoExterna::ordenarPorNome(const string& arquivoEntrada, const string
     }
 
     if (!blocos.empty()) {
-        rename(blocos[0].c_str(), arquivoSaida.c_str());
+        try {
+            if (fs::exists(arquivoSaida)) fs::remove(arquivoSaida);
+            fs::rename(blocos[0], arquivoSaida);
+        } catch (const fs::filesystem_error& e) {
+            cerr << "Erro ao finalizar a ordenação: " << e.what() << endl;
+        }
     }
+    
+    // Limpeza final do diretório temporário se estiver vazio
+    try {
+        if (fs::exists("temp") && fs::is_empty("temp")) {
+            fs::remove("temp");
+        }
+    } catch (...) {}
 }

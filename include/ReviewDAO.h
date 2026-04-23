@@ -14,7 +14,9 @@ private:
     int ultimoID;
 
     HashExtensivel hash;
+    HashExtensivel hashJogo;
 
+    void reconstruirHashes();
     void adicionarIndice(int idJogo, long offset);
 
 public:

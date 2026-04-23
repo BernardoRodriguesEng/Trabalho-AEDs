@@ -19,6 +19,7 @@ public:
 
     void inserir(int id, long offset);
     bool buscar(int id, long &offset);
+    std::vector<long> buscarTodos(int id);
 
     bool remover(int id);
 };

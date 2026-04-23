@@ -8,10 +8,10 @@ class Review {
 public:
     char lapide;
     int idReview;
-    int idJogo; // FK
+    int idJogo; // Chave estrangeira
     string usuario;
     string comentario;
-    float nota;
+    float nota; // 1 a 5
 
     Review();
 

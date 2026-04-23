@@ -1,313 +1,340 @@
+#define WIN32_LEAN_AND_MEAN
+#define _WIN32_WINNT 0x0A00
+#include "../external/httplib.h"
 #include "../include/GameController.h"
 #include "../include/ReviewDAO.h"
 #include <iostream>
-#include <limits>
 #include <sstream>
 #include <vector>
 
 using namespace std;
 
-// Constructor: Initializes the controller with the database filename and its DAO
+// Auxiliares para JSON
+string escapeJsonString(const string& input) {
+    string output;
+    for (char c : input) {
+        switch (c) {
+            case '\"': output += "\\\""; break;
+            case '\\': output += "\\\\"; break;
+            case '\b': output += "\\b"; break;
+            case '\f': output += "\\f"; break;
+            case '\n': output += "\\n"; break;
+            case '\r': output += "\\r"; break;
+            case '\t': output += "\\t"; break;
+            default:
+                if ('\x00' <= c && c <= '\x1f') {
+                    char buf[10];
+                    snprintf(buf, sizeof(buf), "\\u%04x", c);
+                    output += buf;
+                } else {
+                    output += c;
+                }
+        }
+    }
+    return output;
+}
+
+string vectorToJson(const vector<string>& vec) {
+    string json = "[";
+    for (size_t i = 0; i < vec.size(); ++i) {
+        json += "\"" + escapeJsonString(vec[i]) + "\"";
+        if (i < vec.size() - 1) json += ",";
+    }
+    json += "]";
+    return json;
+}
+
+string gameToJson(const Game& g) {
+    string json = "{";
+    json += "\"appid\":" + to_string(g.appid) + ",";
+    json += "\"name\":\"" + escapeJsonString(g.name) + "\",";
+    json += "\"release_date\":\"" + to_string(g.release_date.year) + "-" + to_string(g.release_date.month) + "-" + to_string(g.release_date.day) + "\",";
+    json += "\"developer\":\"" + escapeJsonString(g.developer) + "\",";
+    json += "\"publisher\":\"" + escapeJsonString(g.publisher) + "\",";
+    json += "\"platforms\":\"" + escapeJsonString(g.platforms) + "\",";
+    json += "\"required_age\":" + to_string(g.required_age) + ",";
+    json += "\"achievements\":" + to_string(g.achievements) + ",";
+    json += "\"positive_ratings\":" + to_string(g.positive_ratings) + ",";
+    json += "\"negative_ratings\":" + to_string(g.negative_ratings) + ",";
+    json += "\"average_playtime\":" + to_string(g.average_playtime) + ",";
+    json += "\"median_playtime\":" + to_string(g.median_playtime) + ",";
+    json += "\"owners\":\"" + escapeJsonString(g.owners) + "\",";
+    json += "\"price\":" + to_string(g.price) + ",";
+    json += "\"english\":" + string(g.english ? "true" : "false") + ",";
+    json += "\"categories\":" + vectorToJson(g.categories) + ",";
+    json += "\"genres\":" + vectorToJson(g.genres) + ",";
+    json += "\"steamspy_tags\":" + vectorToJson(g.steamspy_tags);
+    json += "}";
+    return json;
+}
+
+string reviewToJson(const Review& r) {
+    string json = "{";
+    json += "\"idReview\":" + to_string(r.idReview) + ",";
+    json += "\"usuario\":\"" + escapeJsonString(r.usuario) + "\",";
+    json += "\"comentario\":\"" + escapeJsonString(r.comentario) + "\",";
+    json += "\"nota\":" + to_string(r.nota);
+    json += "}";
+    return json;
+}
+
+// Parser JSON simples para nível único, bem básico
+string extractJsonField(const string& json, const string& key) {
+    string search = "\"" + key + "\":";
+    size_t pos = json.find(search);
+    if (pos == string::npos) return "";
+    pos += search.length();
+    
+    while (pos < json.length() && (json[pos] == ' ' || json[pos] == '\n')) pos++;
+    
+    if (json[pos] == '"') { // Valor string
+        pos++;
+        size_t end = json.find("\"", pos);
+        return json.substr(pos, end - pos);
+    } else { // Valor numérico/booleano
+        size_t end = json.find_first_of(",}", pos);
+        return json.substr(pos, end - pos);
+    }
+}
+
 GameController::GameController(const string& binFilename) : binFilename(binFilename), dao(binFilename) {}
 
-// Main loop of the controller that displays the menu and handles user
 void GameController::run() {
-    int op = 0;
-    do {
-        cout << "\n=== STEAM DATABASE ===" << endl;
-        cout << "1. Search Game by Name" << endl;
-        cout << "2. Search Game by ID" << endl;
-        cout << "3. Add New Game" << endl;
-        cout << "4. Update Game" << endl;
-        cout << "5. Delete Game" << endl;
-        cout << "6. List Games" << endl;
-        cout << "7. Exit" << endl;
-        cout << "Choice: ";
-        
-        if (!(cin >> op)) {
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            cout << ">> Invalid option." << endl;
-            continue;
+    httplib::Server svr;
+
+    // Serve arquivos estáticos do diretório 'public'
+    svr.set_mount_point("/", "./public");
+
+    // Buscar por Nome
+    svr.Get("/api/searchByName", [this](const httplib::Request& req, httplib::Response& res) {
+        if (!req.has_param("name")) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Missing name parameter\"}", "application/json");
+            return;
         }
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        string name = req.get_param_value("name");
+        vector<Game> games = dao.searchAllByName(name);
 
-        switch (op) {
-            case 1: handleSearchByName(); break;
-            case 2: handleSearchByID(); break;
-            case 3: handleAddGame(); break;
-            case 4: handleUpdateGame(); break;
-            case 5: handleDeleteGame(); break;
-            case 6: handleListGames(); break;
-            case 7: cout << "Exiting..." << endl; break;
-            default: cout << ">> Invalid option." << endl;
-        }
-    } while (op != 7);
-}
-
-// Prompts the user for a game name and searches for it in the database
-void GameController::handleSearchByName() {
-    string name;
-    cout << "Enter Name: ";
-    getline(cin, name);
-
-    Game g;
-    long pos;
-
-    if (dao.searchByName(name, g, pos)) {
-        cout << "\n>> GAME FOUND! <<" << endl;
-        g.print();
-
-        ReviewDAO reviewDAO("reviews.bin");
-        vector<Review> reviews = reviewDAO.buscarPorJogo(g.getAppId());
-
-        cout << "\n--- Reviews ---\n";
-
-        if (reviews.empty()) {
-            cout << "No reviews yet.\n";
-        } else {
-            for (auto& r : reviews) {
-                cout << r.usuario << ": "
-                     << r.comentario
-                     << " (" << r.nota << ")\n";
+        if (!games.empty()) {
+            string json = "{\"games\":[";
+            for(size_t i = 0; i < games.size(); i++) {
+                json += gameToJson(games[i]);
+                if(i < games.size() - 1) json += ",";
             }
-        }
-
-    } else {
-        cout << ">> Game not found." << endl;
-    }
-}
-
-// Prompts the user for a game ID and searches for it in the database
-void GameController::handleSearchByID() {
-    int id = safeReadInt("Enter ID: ");
-    Game g;
-    long pos;
-
-    if (dao.searchById(id, g, pos)) {
-        cout << "\n>> GAME FOUND! <<" << endl;
-        g.print();
-
-        ReviewDAO reviewDAO("reviews.bin");
-        vector<Review> reviews = reviewDAO.buscarPorJogo(g.getAppId());
-
-        cout << "\n--- Reviews ---\n";
-
-        if (reviews.empty()) {
-            cout << "No reviews yet.\n";
+            json += "]}";
+            res.set_content(json, "application/json");
         } else {
-            for (auto& r : reviews) {
-                cout << r.usuario << ": "
-                     << r.comentario
-                     << " (" << r.nota << ")\n";
+            res.status = 404;
+            res.set_content("{\"error\":\"Game not found\"}", "application/json");
+        }
+    });
+
+    // Buscar por ID
+    svr.Get("/api/searchById", [this](const httplib::Request& req, httplib::Response& res) {
+        if (!req.has_param("id")) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Missing id parameter\"}", "application/json");
+            return;
+        }
+        int id = stoi(req.get_param_value("id"));
+        Game g;
+        long pos;
+
+        if (dao.searchById(id, g, pos)) {
+            ReviewDAO reviewDAO("reviews.bin");
+            vector<Review> reviews = reviewDAO.buscarPorJogo(g.getAppId());
+            
+            string json = "{\"game\":" + gameToJson(g) + ", \"reviews\":[";
+            for(size_t i = 0; i < reviews.size(); i++) {
+                json += reviewToJson(reviews[i]);
+                if(i < reviews.size() - 1) json += ",";
             }
+            json += "]}";
+            
+            res.set_content(json, "application/json");
+        } else {
+            res.status = 404;
+            res.set_content("{\"error\":\"Game not found\"}", "application/json");
         }
+    });
 
-    } else {
-        cout << ">> Game not found." << endl;
-    }
-}
-
-// Collects all required fields from the user and adds a new game to the database
-void GameController::handleAddGame() {
-    Game g;
-
-    int appidChoice = safeReadInt("Enter AppID (default is 0): ");
-    g.appid = (appidChoice == 0) ? dao.getNextAppId() : appidChoice;
-
-    cout << ">> AppID assigned: " << g.appid << endl;
-
-    g.name = safeReadString("Enter Name: ");
-    
-    g.release_date.year = safeReadInt("Enter Release Year (YYYY): ");
-    g.release_date.month = safeReadInt("Enter Release Month (MM): ");
-    g.release_date.day = safeReadInt("Enter Release Day (DD): ");
-    
-    int eng = safeReadInt("Is English supported? (1 for yes, 0 for no): ");
-    g.english = (eng == 1);
-    
-    g.developer = safeReadString("Enter Developer: ");
-    g.publisher = safeReadString("Enter Publisher: ");
-    g.platforms = safeReadString("Enter Platforms (ex: windows;mac;linux): ");
-    g.required_age = safeReadInt("Enter Required Age: ");
-
-    auto splitString = [](const string& s, char delimiter) {
-        vector<string> tokens;
-        string token;
-        istringstream tokenStream(s);
-        while (getline(tokenStream, token, delimiter)) {
-            if (!token.empty()) tokens.push_back(token);
+    // Deletar Jogo
+    svr.Delete("/api/game", [this](const httplib::Request& req, httplib::Response& res) {
+        if (!req.has_param("name")) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Missing name parameter\"}", "application/json");
+            return;
         }
-        return tokens;
+        string name = req.get_param_value("name");
+        if (dao.remove(name)) {
+            res.set_content("{\"message\":\"Game deleted successfully\"}", "application/json");
+        } else {
+            res.status = 404;
+            res.set_content("{\"error\":\"Game not found\"}", "application/json");
+        }
+    });
+
+    // Adicionar Jogo
+    svr.Post("/api/game", [this](const httplib::Request& req, httplib::Response& res) {
+        try {
+            string body = req.body;
+            Game g;
+            
+            string idStr = extractJsonField(body, "appid");
+            g.appid = idStr.empty() ? dao.getNextAppId() : stoi(idStr);
+            
+            g.name = extractJsonField(body, "name");
+            g.developer = extractJsonField(body, "developer");
+            g.publisher = extractJsonField(body, "publisher");
+            g.platforms = extractJsonField(body, "platforms");
+            
+            string priceStr = extractJsonField(body, "price");
+            g.price = priceStr.empty() ? 0.0f : stof(priceStr);
+            
+            string ageStr = extractJsonField(body, "required_age");
+            g.required_age = ageStr.empty() ? 0 : stoi(ageStr);
+            
+            g.owners = extractJsonField(body, "owners");
+            
+            string avgStr = extractJsonField(body, "average_playtime");
+            g.average_playtime = avgStr.empty() ? 0 : stoi(avgStr);
+
+            string medStr = extractJsonField(body, "median_playtime");
+            g.median_playtime = medStr.empty() ? 0 : stoi(medStr);
+
+            string engStr = extractJsonField(body, "english");
+            g.english = (engStr == "true" || engStr == "1");
+
+            // Tratamento simples para strings separadas por vírgula em campos JSON para vetores
+            auto split = [](string s) {
+                vector<string> res;
+                stringstream ss(s);
+                string item;
+                while (getline(ss, item, ',')) {
+                    if(!item.empty()) res.push_back(item);
+                }
+                return res;
+            };
+
+            g.categories = split(extractJsonField(body, "categories"));
+            g.genres = split(extractJsonField(body, "genres"));
+            g.steamspy_tags = split(extractJsonField(body, "steamspy_tags"));
+
+            // Apenas campos básicos necessários inicializados aqui
+            g.setActive(true);
+            
+            dao.create(g);
+            res.set_content("{\"message\":\"Game added successfully\", \"appid\":" + to_string(g.appid) + "}", "application/json");
+        } catch (exception& e) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Invalid payload\"}", "application/json");
+        }
+    });
+
+    // Atualizar Jogo
+    svr.Put("/api/game", [this](const httplib::Request& req, httplib::Response& res) {
+        try {
+            if (!req.has_param("name")) {
+                res.status = 400;
+                res.set_content("{\"error\":\"Missing name parameter for update\"}", "application/json");
+                return;
+            }
+            string name = req.get_param_value("name");
+            Game g;
+            long pos;
+            if(!dao.searchByName(name, g, pos)){
+                res.status = 404;
+                res.set_content("{\"error\":\"Game not found\"}", "application/json");
+                return;
+            }
+
+            string body = req.body;
+            
+            string newName = extractJsonField(body, "name");
+            if (!newName.empty()) g.name = newName;
+            
+            string dev = extractJsonField(body, "developer");
+            if (!dev.empty()) g.developer = dev;
+
+            string pub = extractJsonField(body, "publisher");
+            if (!pub.empty()) g.publisher = pub;
+            
+            string priceStr = extractJsonField(body, "price");
+            if (!priceStr.empty()) g.price = stof(priceStr);
+
+            string ageStr = extractJsonField(body, "required_age");
+            if (!ageStr.empty()) g.required_age = stoi(ageStr);
+
+            string avgStr = extractJsonField(body, "average_playtime");
+            if (!avgStr.empty()) g.average_playtime = stoi(avgStr);
+
+            string medStr = extractJsonField(body, "median_playtime");
+            if (!medStr.empty()) g.median_playtime = stoi(medStr);
+
+            string achStr = extractJsonField(body, "achievements");
+            if (!achStr.empty()) g.achievements = stoi(achStr);
+
+            string posStr = extractJsonField(body, "positive_ratings");
+            if (!posStr.empty()) g.positive_ratings = stoi(posStr);
+
+            string negStr = extractJsonField(body, "negative_ratings");
+            if (!negStr.empty()) g.negative_ratings = stoi(negStr);
+
+            string engStr = extractJsonField(body, "english");
+            if (!engStr.empty()) g.english = (engStr == "true" || engStr == "1");
+
+            string ownersStr = extractJsonField(body, "owners");
+            if (!ownersStr.empty()) g.owners = ownersStr;
+
+            string platStr = extractJsonField(body, "platforms");
+            if (!platStr.empty()) g.platforms = platStr;
+
+            auto split = [](string s) {
+                vector<string> res;
+                stringstream ss(s);
+                string item;
+                while (getline(ss, item, ',')) {
+                    if(!item.empty()) res.push_back(item);
+                }
+                return res;
+            };
+
+            string catStr = extractJsonField(body, "categories");
+            if (!catStr.empty()) g.categories = split(catStr);
+
+            string genStr = extractJsonField(body, "genres");
+            if (!genStr.empty()) g.genres = split(genStr);
+
+            string tagsStr = extractJsonField(body, "steamspy_tags");
+            if (!tagsStr.empty()) g.steamspy_tags = split(tagsStr);
+            
+            if (dao.update(name, g)) {
+                res.set_content("{\"message\":\"Game updated successfully\"}", "application/json");
+            } else {
+                res.status = 500;
+                res.set_content("{\"error\":\"Failed to update game\"}", "application/json");
+            }
+        } catch (exception& e) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Invalid payload\"}", "application/json");
+        }
+    });
+
+    // Endpoint de Shutdown (Trata tanto GET quanto POST para compatibilidade)
+    auto shutdown_handler = [&](const httplib::Request&, httplib::Response& res) {
+        res.set_content("{\"message\":\"Desligando...\"}", "application/json");
+        cout << "\nRequisição de shutdown recebida. Fechando servidor...\n";
+        svr.stop();
     };
+    svr.Get("/api/shutdown", shutdown_handler);
+    svr.Post("/api/shutdown", shutdown_handler);
 
-    string cats = safeReadString("Enter Categories (separated by ;): ");
-    g.categories = splitString(cats, ';');
-    
-    string gens = safeReadString("Enter Genres (separated by ;): ");
-    g.genres = splitString(gens, ';');
-    
-    string tags = safeReadString("Enter Tags (separated by ;): ");
-    g.steamspy_tags = splitString(tags, ';');
-    
-    g.achievements = safeReadInt("Enter Achievements count: ");
-    g.positive_ratings = safeReadInt("Enter Positive Ratings: ");
-    g.negative_ratings = safeReadInt("Enter Negative Ratings: ");
-    g.average_playtime = safeReadInt("Enter Average Playtime (minutes): ");
-    g.median_playtime = safeReadInt("Enter Median Playtime (minutes): ");
-    g.owners = safeReadString("Enter Owners range (ex: 10000-20000): ");
-    
-    g.price = safeReadFloat("Enter Price: ");
-    g.setActive(true);
+    int port = 8080;
+    cout << "\n============================================\n";
+    cout << "Servidor iniciado! Abra seu navegador em:\n";
+    cout << "http://localhost:" << port << "\n";
+    cout << "Pressione Ctrl+C para parar.\n";
+    cout << "============================================\n";
 
-    dao.create(g);
-    cout << ">> Game successfully added (ID " << g.appid << ")." << endl;
-}
-
-// Finds a game by name and prompts the user to update its price
-void GameController::handleUpdateGame(){
-    string name;
-    cout << "Enter Name of the game to update: ";
-    getline(cin, name);
-    
-    Game g;
-    long pos;
-
-    if(!dao.searchByName(name, g, pos)){
-        cout << ">> Game not found." << endl;
-        return;
-    }
-
-    cout << "\n>> Game found! <<" << endl;
-    g.print();
-
-    bool editing = true;
-
-    while (editing) {
-
-        cout << "\n>> What do you want to update? <<" << endl;
-        cout << "1 - Name" << endl;
-        cout << "2 - Release Date\n";
-        cout << "3 - Developer\n";
-        cout << "4 - Publisher\n";
-        cout << "5 - Platforms\n";
-        cout << "6 - Price\n";
-        cout << "7 - Required Age\n";
-        cout << "8 - Achievements\n";
-        cout << "9 - Positive Ratings\n";
-        cout << "10 - Negative Ratings\n";
-        cout << "0 - Finish editing\n";
-
-        int op = safeReadInt("Choice: ");
-
-        switch(op){
-            case 1:
-                g.name = safeReadString("New name: ");
-                break;
-
-            case 2:
-                g.release_date.year = safeReadInt("New year: ");
-                g.release_date.month = safeReadInt("New month: ");
-                g.release_date.day = safeReadInt("New day: ");
-                break;
-
-            case 3:
-                g.developer = safeReadString("New developer: ");
-                break;
-
-            case 4:
-                g.publisher = safeReadString("New publisher: ");
-                break;
-
-            case 5:
-                g.platforms = safeReadString("New platforms: ");
-                break;
-
-            case 6:
-                g.price = safeReadFloat("New price: ");
-                break;
-
-            case 7:
-                g.required_age = safeReadInt("New required age: ");
-                break;
-
-            case 8:
-                g.achievements = safeReadInt("New achievements: ");
-                break;
-
-            case 9:
-                g.positive_ratings = safeReadInt("New positive ratings: ");
-                break;
-
-            case 10:
-                g.negative_ratings = safeReadInt("New negative ratings: ");
-                break;
-
-            case 0:
-                editing = false;
-                break;
-
-            default:
-                cout << ">> Invalid option." << endl;
-        }
-    }
-    if(dao.update(name, g)){
-        cout << ">> Game information updated." << endl;
-    } else {
-        cout << ">> Error updating the game." << endl;
-    }
-}
-
-// Locates a game by name and softly deletes it
-void GameController::handleDeleteGame() {
-    string name;
-    cout << "Enter Name of the game to delete: "; getline(cin, name);
-    if (dao.remove(name)) {
-        cout << ">> Game marked for deletion (logical exclusion)." << endl;
-    } else {
-        cout << ">> Game not found." << endl;
-    }
-}
-
-// Lists the 20 most recently added active games in the database
-void GameController::handleListGames() {
-    dao.listActive(20);
-}
-
-// Utility to safely read an integer from standard input, handling invalid formats
-int GameController::safeReadInt(const string& prompt) {
-    int val;
-    while (true) {
-        cout << prompt;
-        if (cin >> val) {
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            return val;
-        }
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        cout << ">> Invalid entry. Please type a whole number." << endl;
-    }
-}
-
-// Utility to safely read a floating point number from standard input
-float GameController::safeReadFloat(const string& prompt) {
-    float val;
-    while (true) {
-        cout << prompt;
-        if (cin >> val) {
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
-            return val;
-        }
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-        cout << ">> Invalid entry. Please type a real number (ex: 19.90)." << endl;
-    }
-}
-
-// Utility to safely read a string from standard input
-string GameController::safeReadString(const string& prompt) {
-    string val;
-    cout << prompt;
-    getline(cin, val);
-    return val;
+    svr.listen("0.0.0.0", port);
 }

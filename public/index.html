@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam Database Client</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="sidebar">
+        <ul class="nav-links">
+            <li class="active" onclick="showSection('search')">Buscar</li>
+            <li onclick="showSection('add')">Adicionar</li>
+            <li onclick="showSection('manage')">Gerenciar</li>
+        </ul>
+    </div>
+
+    <main class="content">
+        <!-- Seção de Busca -->
+        <section id="search-section" class="active-section">
+            <header>
+                <h2>Banco de Dados</h2>
+            </header>
+            
+            <div class="search-box glass-panel">
+                <select id="search-type">
+                    <option value="name">Nome</option>
+                    <option value="id">ID</option>
+                </select>
+                <input type="text" id="search-input" placeholder="Buscar...">
+                <button class="btn-primary" onclick="searchGame()">Pesquisar</button>
+            </div>
+
+            <div id="search-result" class="result-container hidden">
+                <div class="cycle-controls glass-panel">
+                    <button class="btn-secondary" onclick="cycleResults(-1)">← Anterior</button>
+                    <span id="result-counter">1 de 1</span>
+                    <button class="btn-secondary" onclick="cycleResults(1)">Próximo →</button>
+                </div>
+
+                <div class="game-details glass-panel">
+                    <h3 id="res-name">Nome do Jogo</h3>
+                    <div class="tags">
+                        <span class="tag" id="res-dev">Desenvolvedor</span>
+                        <span class="tag" id="res-pub">Distribuidora</span>
+                        <span class="tag price" id="res-price">$0.00</span>
+                    </div>
+                    <div class="stats">
+                        <div class="stat"><span class="label">AppID</span> <span class="value" id="res-appid">0</span></div>
+                        <div class="stat"><span class="label">Lançamento</span> <span class="value" id="res-date">-</span></div>
+                        <div class="stat positive"><span class="label">👍</span> <span class="value" id="res-pos">0</span></div>
+                        <div class="stat negative"><span class="label">👎</span> <span class="value" id="res-neg">0</span></div>
+                        <div class="stat"><span class="label">Tempo Jogado (Médio)</span> <span class="value" id="res-avg">0</span></div>
+                        <div class="stat"><span class="label">Tempo Jogado (Mediano)</span> <span class="value" id="res-med">0</span></div>
+                        <div class="stat"><span class="label">Donos</span> <span class="value" id="res-owners">-</span></div>
+                        <div class="stat"><span class="label">Plataformas</span> <span class="value" id="res-plat">-</span></div>
+                    </div>
+
+                    <div class="data-section">
+                        <h4>Categorias</h4>
+                        <div id="res-categories" class="data-list"></div>
+                    </div>
+                    <div class="data-section">
+                        <h4>Gêneros</h4>
+                        <div id="res-genres" class="data-list"></div>
+                    </div>
+                    <div class="data-section">
+                        <h4>Tags</h4>
+                        <div id="res-tags" class="data-list"></div>
+                    </div>
+                </div>
+
+                <div class="reviews glass-panel">
+                    <h3>Avaliações de Usuários</h3>
+                    <div id="reviews-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Seção de Adicionar Jogo -->
+        <section id="add-section">
+            <header>
+                <h2>Adicionar Novo Jogo</h2>
+                <p>Registre um novo título no banco de dados binário.</p>
+            </header>
+            
+            <form id="add-form" class="glass-panel" onsubmit="event.preventDefault(); addGame();">
+                <div class="form-group">
+                    <label>Nome do Jogo</label>
+                    <input type="text" id="add-name" required>
+                </div>
+                <div class="form-group row">
+                    <div class="col">
+                        <label>Desenvolvedor</label>
+                        <input type="text" id="add-dev">
+                    </div>
+                    <div class="col">
+                        <label>Distribuidora</label>
+                        <input type="text" id="add-pub">
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col">
+                        <label>Preço ($)</label>
+                        <input type="number" step="0.01" id="add-price">
+                    </div>
+                    <div class="col">
+                        <label>Idade Mínima</label>
+                        <input type="number" id="add-age">
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col">
+                        <label>Tempo Jogado Médio (min)</label>
+                        <input type="number" id="add-avg">
+                    </div>
+                    <div class="col">
+                        <label>Tempo Jogado Mediano (min)</label>
+                        <input type="number" id="add-med">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Faixa de Donos (ex: 0-20,000)</label>
+                    <input type="text" id="add-owners">
+                </div>
+                <div class="form-group">
+                    <label>Plataformas (ex: windows;mac;linux)</label>
+                    <input type="text" id="add-plat">
+                </div>
+                <div class="form-group">
+                    <label>Categorias (separadas por vírgula)</label>
+                    <input type="text" id="add-categories" placeholder="Multi-player, Steam Achievements...">
+                </div>
+                <div class="form-group">
+                    <label>Gêneros (separados por vírgula)</label>
+                    <input type="text" id="add-genres" placeholder="Action, RPG...">
+                </div>
+                <div class="form-group">
+                    <label>Tags (separadas por vírgula)</label>
+                    <input type="text" id="add-tags">
+                </div>
+                <button type="submit" class="btn-primary full-width">Adicionar Jogo ao Banco</button>
+            </form>
+        </section>
+
+        <!-- Seção de Gerenciar Jogos -->
+        <section id="manage-section">
+            <header>
+                <h2>Gerenciar Registros</h2>
+                <p>Atualize ou remova jogos do sistema.</p>
+            </header>
+            
+            <div class="glass-panel">
+                <div class="header-with-action">
+                    <h3>Atualizar Jogo</h3>
+                    <button class="btn-small" onclick="loadGameForUpdate()">Carregar Dados Atuais</button>
+                </div>
+                <div class="form-group">
+                    <label>Nome do Jogo Alvo (para busca)</label>
+                    <input type="text" id="upd-target-name" placeholder="Nome exato do jogo...">
+                </div>
+                
+                <div class="divider"></div>
+                <p class="form-hint">Apenas preencha os campos que deseja alterar. Deixe em branco para manter o valor atual.</p>
+
+                <div class="form-group">
+                    <label>Novo Nome do Jogo</label>
+                    <input type="text" id="upd-name">
+                </div>
+                <div class="form-group row">
+                    <div class="col">
+                        <label>Desenvolvedor</label>
+                        <input type="text" id="upd-dev">
+                    </div>
+                    <div class="col">
+                        <label>Distribuidora</label>
+                        <input type="text" id="upd-pub">
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col">
+                        <label>Preço ($)</label>
+                        <input type="number" step="0.01" id="upd-price">
+                    </div>
+                    <div class="col">
+                        <label>Idade Mínima</label>
+                        <input type="number" id="upd-age">
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col">
+                        <label>Tempo Jogado Médio (min)</label>
+                        <input type="number" id="upd-avg">
+                    </div>
+                    <div class="col">
+                        <label>Tempo Jogado Mediano (min)</label>
+                        <input type="number" id="upd-med">
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col">
+                        <label>Avaliações Positivas</label>
+                        <input type="number" id="upd-pos">
+                    </div>
+                    <div class="col">
+                        <label>Avaliações Negativas</label>
+                        <input type="number" id="upd-neg">
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <div class="col">
+                        <label>Conquistas</label>
+                        <input type="number" id="upd-ach">
+                    </div>
+                    <div class="col">
+                        <label>Faixa de Donos</label>
+                        <input type="text" id="upd-owners">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Plataformas (ex: windows;mac;linux)</label>
+                    <input type="text" id="upd-plat">
+                </div>
+                <div class="form-group">
+                    <label>Categorias (separadas por vírgula)</label>
+                    <input type="text" id="upd-categories">
+                </div>
+                <div class="form-group">
+                    <label>Gêneros (separados por vírgula)</label>
+                    <input type="text" id="upd-genres">
+                </div>
+                <div class="form-group">
+                    <label>Tags (separadas por vírgula)</label>
+                    <input type="text" id="upd-tags">
+                </div>
+                <button class="btn-secondary full-width" onclick="updateGame()">Atualizar Jogo no Banco</button>
+            </div>
+
+            <div class="glass-panel danger-zone mt-4">
+                <h3>Zona de Perigo</h3>
+                <div class="form-group">
+                    <label>Nome do Jogo para Deletar</label>
+                    <input type="text" id="del-name" placeholder="Nome exato do jogo...">
+                </div>
+                <button class="btn-danger" onclick="deleteGame()">Deletar Jogo</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toast de Notificação -->
+    <div id="toast" class="toast hidden">Mensagem</div>
+
+    <script src="script.js"></script>
+</body>
+</html>

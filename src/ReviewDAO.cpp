@@ -4,22 +4,49 @@
 using namespace std;
 
 ReviewDAO::ReviewDAO(string nomeArquivo)
-    : nomeArquivo(nomeArquivo), hash(3) {
+    : nomeArquivo(nomeArquivo), hash(10), hashJogo(10) {
     ultimoID = 0;
+    reconstruirHashes();
+}
+
+void ReviewDAO::reconstruirHashes() {
+    ifstream file(nomeArquivo, ios::binary);
+    if (!file) return;
+
+    while (file.peek() != EOF) {
+        long offset = file.tellg();
+        int size;
+        if (!file.read(reinterpret_cast<char*>(&size), sizeof(int))) break;
+
+        char* buffer = new char[size];
+        file.read(buffer, size);
+
+        Review r;
+        r.desserializar(buffer);
+
+        if (r.isAtivo()) {
+            hash.inserir(r.idReview, offset);
+            hashJogo.inserir(r.idJogo, offset);
+            if (r.idReview > ultimoID) ultimoID = r.idReview;
+        }
+
+        delete[] buffer;
+    }
+    file.close();
 }
 
 void ReviewDAO::adicionarIndice(int idJogo, long offset) {
-    ofstream index("review_index.bin", ios::binary | ios::app);
-
-    index.write(reinterpret_cast<char*>(&idJogo), sizeof(int));
-    index.write(reinterpret_cast<char*>(&offset), sizeof(long));
-
-    index.close();
+    // Indexador legado, agora usando HashJogo
 }
 
 // ---------------- CREATE ----------------
 void ReviewDAO::criar(Review& r) {
     fstream file(nomeArquivo, ios::binary | ios::app);
+    if (!file) {
+        file.open(nomeArquivo, ios::binary | ios::out);
+        file.close();
+        file.open(nomeArquivo, ios::binary | ios::app);
+    }
 
     long offset = file.tellp();
 
@@ -38,46 +65,38 @@ void ReviewDAO::criar(Review& r) {
     delete[] buffer;
     file.close();
 
-    adicionarIndice(r.idJogo, offset);
-
     hash.inserir(r.idReview, offset);
+    hashJogo.inserir(r.idJogo, offset);
 }
 
 vector<Review> ReviewDAO::buscarPorJogo(int idJogo) {
     vector<Review> lista;
+    vector<long> offsets = hashJogo.buscarTodos(idJogo);
 
-    ifstream index("review_index.bin", ios::binary);
-    if (!index) return lista;
+    if (offsets.empty()) return lista;
 
-    int id;
-    long offset;
+    ifstream file(nomeArquivo, ios::binary);
+    if (!file) return lista;
 
-    while (index.read(reinterpret_cast<char*>(&id), sizeof(int))) {
-        index.read(reinterpret_cast<char*>(&offset), sizeof(long));
+    for (long offset : offsets) {
+        file.seekg(offset);
 
-        if (id == idJogo) {
-            ifstream file(nomeArquivo, ios::binary);
+        int size;
+        file.read(reinterpret_cast<char*>(&size), sizeof(int));
 
-            file.seekg(offset);
+        char* buffer = new char[size];
+        file.read(buffer, size);
 
-            int size;
-            file.read(reinterpret_cast<char*>(&size), sizeof(int));
+        Review r;
+        r.desserializar(buffer);
 
-            char* buffer = new char[size];
-            file.read(buffer, size);
+        if (r.isAtivo())
+            lista.push_back(r);
 
-            Review r;
-            r.desserializar(buffer);
-
-            if (r.isAtivo())
-                lista.push_back(r);
-
-            delete[] buffer;
-            file.close();
-        }
+        delete[] buffer;
     }
 
-    index.close();
+    file.close();
     return lista;
 }
 
@@ -150,7 +169,7 @@ bool ReviewDAO::remover(int idReview) {
     if (!hash.buscar(idReview, offset))
         return false;
 
-    // remove do hash (CORREÇÃO IMPORTANTE)
+    // Remove do hash
     hash.remover(idReview);
 
     fstream file(nomeArquivo, ios::binary | ios::in | ios::out);

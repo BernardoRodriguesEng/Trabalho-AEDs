@@ -20,6 +20,11 @@ bool HashExtensivel::buscar(int id, long &offset) {
     return diretorio[indice]->buscar(id, offset);
 }
 
+std::vector<long> HashExtensivel::buscarTodos(int id) {
+    int indice = hash(id);
+    return diretorio[indice]->buscarTodos(id);
+}
+
 void HashExtensivel::inserir(int id, long offset) {
     int indice = hash(id);
 

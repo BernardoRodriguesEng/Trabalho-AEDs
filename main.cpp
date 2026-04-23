@@ -24,10 +24,10 @@ int main() {
     string csvFilename = "steam.csv";
     string binFilename = "steam.bin";
 
-    // Verifies if the binary file exists
+    // Verifica se o arquivo binário existe
     ifstream check(binFilename);
     if (!check.is_open()) {
-        cout << binFilename << " not found. Converting from " << csvFilename << "..." << endl;
+        cout << binFilename << " não encontrado. Convertendo de " << csvFilename << "..." << endl;
         CSVConverter converter(csvFilename);
         if (!converter.convertToBinary(binFilename)) {
             cerr << "Erro fatal na conversão do CSV!" << endl;
@@ -39,10 +39,10 @@ int main() {
     OrdenacaoExterna ordenacao;
     ordenacao.ordenarPorNome(binFilename, "steam_ordenado.bin");
 
-    // Awakes controller (MVC)
+    // Desperta o controller (MVC)
     GameController controller(binFilename);
     
-    // Starts application
+    // Inicia a aplicação
     controller.run();
 
     return 0;
