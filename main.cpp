@@ -24,20 +24,33 @@ int main() {
     string csvFilename = "steam.csv";
     string binFilename = "steam.bin";
 
-    // Verifica se o arquivo binário existe
+    // Verifica se os arquivos de dados existem. Se não, reconstrói o banco.
     ifstream check(binFilename);
     if (!check.is_open()) {
-        cout << binFilename << " nao encontrado. Convertendo de " << csvFilename << "..." << endl;
+        cout << "--------------------------------------------" << endl;
+        cout << "PRIMEIRA EXECUCAO DETECTADA" << endl;
+        cout << "Convertendo " << csvFilename << " para binario..." << endl;
+        
         CSVConverter converter(csvFilename);
         if (!converter.convertToBinary(binFilename)) {
-            cerr << "Erro fatal na conversão do CSV!" << endl;
+            cerr << "Erro critico: Nao foi possivel criar o banco de dados." << endl;
             return 1;
         }
+        
+        cout << "Gerando indices e ordenacao inicial..." << endl;
+        OrdenacaoExterna ordenacao;
+        ordenacao.ordenarPorNome(binFilename, "steam_ordenado.bin");
+        cout << "Processo concluido com sucesso!" << endl;
+        cout << "--------------------------------------------" << endl;
+    } else {
+        check.close();
+        // Se desejar garantir que o arquivo ordenado sempre exista:
+        ifstream checkOrd("steam_ordenado.bin");
+        if (!checkOrd.is_open()) {
+            OrdenacaoExterna ordenacao;
+            ordenacao.ordenarPorNome(binFilename, "steam_ordenado.bin");
+        }
     }
-    check.close();
-
-    OrdenacaoExterna ordenacao;
-    ordenacao.ordenarPorNome(binFilename, "steam_ordenado.bin");
 
     // Desperta o controller (MVC)
     GameController controller(binFilename);

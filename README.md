@@ -10,20 +10,21 @@ O sistema permite gerenciar um catálogo de jogos da Steam, realizando operaçõ
 
 Para compilar e executar este projeto corretamente, seu ambiente deve atender aos seguintes requisitos:
 
--   **Sistema Operacional**: Windows 10 ou superior (exigido pela biblioteca de rede).
--   **Compilador**: MinGW-w64 com suporte a **C++17**.
-    -   Recomendado: **GCC 11.0** ou superior.
-    -   O MinGW deve ter sido instalado com o modelo de threads **posix** (necessário para `std::thread`).
--   **Bibliotecas de Sistema**: Linkar com `ws2_32` (já incluído no script de build).
+-   **Compilador**: GCC com suporte a **C++17** ou superior.
+-   **Compatibilidade**: 
+    - **Linux**: O comando de build utiliza `-lpthread`.
+    - **Windows**: Linkar com `-lws2_32`.
 
 ## Como Executar
 
-O projeto inclui scripts automatizados para facilitar a compilação no Windows:
+O projeto foi otimizado para ser "plug and play". Não é necessário rodar scripts de conversão manuais.
 
-1.  **Compilar**: Execute o arquivo `build_db.bat`. Ele utiliza o comando `g++ -std=c++17 main.cpp -o a.exe -lws2_32`.
-2.  **Executar**: Rode o `a.exe`. O servidor iniciará e abrirá automaticamente a porta **8080**.
-3.  **Acessar**: Abra seu navegador em `http://localhost:8080`.
-4.  **Resetar**: Se precisar limpar o banco e reimportar os dados do CSV original, execute o `reset_db.bat`.
+1.  **Compilar**: 
+    - **Linux**: `g++ -std=c++17 main.cpp -o app -lpthread`
+    - **Windows**: `g++ -std=c++17 main.cpp -o app.exe -lws2_32`
+2.  **Executar**: Rode o executável gerado (`./app` ou `app.exe`).
+3.  **Inicialização Automática**: Na primeira execução, o programa detectará a ausência dos arquivos `.bin` e realizará automaticamente a conversão do CSV, a geração de índices e a ordenação externa.
+4.  **Acessar**: Abra seu navegador em `http://localhost:8080`.
 
 ## Formulário Técnico
 
@@ -43,7 +44,7 @@ Além das Chaves Primárias (`appid` para jogos e `idReview` para avaliações),
 Implementamos um **Hash Extensível** dinâmico. Ele utiliza um diretório de ponteiros para buckets que residem em memória e são reconstruídos a partir do disco. Quando um bucket atinge sua capacidade máxima, ele sofre um *split* (divisão), e a profundidade local/global é atualizada, garantindo acesso O(1).
 
 ### f) Como foi implementado o relacionamento 1:N?
-O relacionamento entre Jogos e Avaliações foi implementado usando um índice de **Hash Extensível Secundário**. Esse índice mapeia a Chave Estrangeira (`idJogo`) para todos os offsets das avaliações correspondentes no arquivo de dados. Isso permite que, ao visualizar um jogo, o sistema recupere instantaneamente todas as suas avaliações vinculadas sem percorrer o arquivo inteiro.
+O relacionamento entre Jogos e Avaliações foi implementado usando um índice de **Hash Extensível Secundário**. Esse índice mapeia a Chave Estrangeira (`idJogo`) para todos os offsets das avaliações correspondentes no arquivo de dados. Isso permite que, ao visualizar um jogo, o sistema recupere e exiba instantaneamente todas as suas avaliações vinculadas através da interface Web.
 
 ### g) Como os índices são persistidos em disco?
 Os índices são reconstruídos em memória a partir dos arquivos de dados (`.bin`) toda vez que a aplicação é iniciada através do método `reconstruirHash()`. Toda operação de escrita (Inserção/Atualização) sincroniza os dados no disco e atualiza o objeto de Hash, garantindo que o índice reflita exatamente o estado atual dos arquivos.
@@ -52,9 +53,9 @@ Os índices são reconstruídos em memória a partir dos arquivos de dados (`.bi
 O projeto segue uma arquitetura modular clara:
 - `/include`: Cabeçalhos e definições de interfaces.
 - `/src`: Implementação da lógica de dados (DAOs), algoritmos de ordenação e controlador.
-- `/public`: Interface do usuário (Frontend Web).
-- `/external`: Bibliotecas de terceiros para comunicação em rede.
-- **Raiz**: Scripts de automação (`.bat`) e documentação principal.
+- `/public`: Interface do usuário (Frontend Web com suporte a visualização e criação de reviews).
+- `/external`: Biblioteca header-only `httplib.h` para comunicação em rede.
+- **Raiz**: Arquivo `main.cpp` e documentação do projeto.
 
 ---
 *Desenvolvido como projeto prático para a disciplina de AEDs III.*

@@ -75,7 +75,9 @@ function updateCycleCounter() {
     document.getElementById('result-counter').textContent = `${currentIndex + 1} de ${currentResults.length}`;
 }
 
-function displayGame(game) {
+async function displayGame(game) {
+    if(!game) return;
+    
     document.getElementById('res-name').textContent = game.name;
     document.getElementById('res-dev').textContent = game.developer;
     document.getElementById('res-pub').textContent = game.publisher;
@@ -107,6 +109,39 @@ function displayGame(game) {
     renderList('res-categories', game.categories);
     renderList('res-genres', game.genres);
     renderList('res-tags', game.steamspy_tags);
+
+    // Carregar Reviews via API (Relacionamento 1:N)
+    loadReviews(game.appid);
+}
+
+async function loadReviews(appid) {
+    const container = document.getElementById('reviews-list');
+    container.innerHTML = '<div class="loader">Carregando avaliações...</div>';
+    
+    try {
+        const res = await fetch(`/api/reviews?idJogo=${appid}`);
+        if(!res.ok) throw new Error("Failed to load reviews");
+        
+        const reviews = await res.json();
+        container.innerHTML = '';
+        
+        if(reviews.length > 0) {
+            reviews.forEach(rev => {
+                const card = document.createElement('div');
+                card.className = 'review-card';
+                card.innerHTML = `
+                    <span class="user">${rev.usuario}</span>
+                    <span class="tag">${rev.nota}/10</span>
+                    <p class="text">${rev.comentario}</p>
+                `;
+                container.appendChild(card);
+            });
+        } else {
+            container.innerHTML = '<p style="color: var(--text-muted)">Nenhuma avaliação encontrada.</p>';
+        }
+    } catch (e) {
+        container.innerHTML = '<p style="color: var(--danger)">Erro ao carregar avaliações.</p>';
+    }
 }
 
 async function addGame() {
@@ -221,6 +256,39 @@ async function updateGame() {
     }
 }
 
+async function postReview() {
+    const appid = document.getElementById('res-appid').textContent;
+    if(!appid || appid === "0") return showToast("Selecione um jogo primeiro", true);
+
+    const payload = {
+        idJogo: parseInt(appid),
+        usuario: document.getElementById('rev-user').value,
+        nota: parseInt(document.getElementById('rev-nota').value) || 0,
+        comentario: document.getElementById('rev-comment').value
+    };
+
+    if(!payload.usuario || !payload.comentario) return showToast("Preencha todos os campos", true);
+
+    try {
+        const res = await fetch('/api/review', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        
+        if(!res.ok) throw new Error("Falha ao enviar avaliação");
+        
+        showToast("Avaliação enviada com sucesso!");
+        document.getElementById('rev-user').value = '';
+        document.getElementById('rev-nota').value = '';
+        document.getElementById('rev-comment').value = '';
+        
+        // Recarrega as reviews
+        loadReviews(appid);
+    } catch(e) {
+        showToast(e.message, true);
+    }
+}
+
 async function deleteGame() {
     const name = document.getElementById('del-name').value;
     if(!name) return showToast("Enter game name", true);
@@ -240,16 +308,7 @@ async function deleteGame() {
     }
 }
 
-window.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'hidden') {
-        navigator.sendBeacon('/api/shutdown');
-    }
-});
 
-// Fallback para alguns navegadores
-window.addEventListener('pagehide', function() {
-    navigator.sendBeacon('/api/shutdown');
-});
 
 window.addEventListener('beforeunload', function () { 
     navigator.sendBeacon('/api/shutdown'); 

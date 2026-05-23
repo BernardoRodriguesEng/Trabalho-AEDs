@@ -320,6 +320,51 @@ void GameController::run() {
         }
     });
 
+    // Buscar reviews de um jogo específico
+    svr.Get("/api/reviews", [this](const httplib::Request& req, httplib::Response& res) {
+        if (!req.has_param("idJogo")) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Missing idJogo\"}", "application/json");
+            return;
+        }
+        int idJogo = stoi(req.get_param_value("idJogo"));
+        ReviewDAO rDao("reviews.bin");
+        auto reviews = rDao.buscarPorJogo(idJogo);
+        
+        string json = "[";
+        for(size_t i = 0; i < reviews.size(); i++) {
+            json += reviewToJson(reviews[i]);
+            if(i < reviews.size() - 1) json += ",";
+        }
+        json += "]";
+        res.set_content(json, "application/json");
+    });
+
+    // Criar nova review
+    svr.Post("/api/review", [this](const httplib::Request& req, httplib::Response& res) {
+        try {
+            string body = req.body;
+            Review r;
+            string idJogoStr = extractJsonField(body, "idJogo");
+            if (idJogoStr.empty()) throw runtime_error("Missing idJogo");
+            
+            r.idJogo = stoi(idJogoStr);
+            r.usuario = extractJsonField(body, "usuario");
+            r.comentario = extractJsonField(body, "comentario");
+            
+            string notaStr = extractJsonField(body, "nota");
+            r.nota = notaStr.empty() ? 0.0f : stof(notaStr);
+            r.setAtivo(true);
+
+            ReviewDAO rDao("reviews.bin");
+            rDao.criar(r);
+            res.set_content("{\"message\":\"Review adicionada!\", \"idReview\":" + to_string(r.idReview) + "}", "application/json");
+        } catch (exception& e) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Failed to add review\"}", "application/json");
+        }
+    });
+
     // Endpoint de Shutdown (Trata tanto GET quanto POST para compatibilidade)
     auto shutdown_handler = [&](const httplib::Request&, httplib::Response& res) {
         res.set_content("{\"message\":\"Desligando...\"}", "application/json");

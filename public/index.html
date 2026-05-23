@@ -84,6 +84,20 @@
                 <div class="reviews glass-panel">
                     <h3>Avaliações de Usuários</h3>
                     <div id="reviews-list"></div>
+
+                    <div class="add-review mt-4">
+                        <h4>Deixe sua avaliação</h4>
+                        <div class="form-group row">
+                            <div class="col">
+                                <input type="text" id="rev-user" placeholder="Seu nome" class="full-width">
+                            </div>
+                            <div class="col">
+                                <input type="number" id="rev-nota" placeholder="Nota (0-10)" max="10" min="0" class="full-width">
+                            </div>
+                        </div>
+                        <textarea id="rev-comment" placeholder="O que achou do jogo?" class="full-width mt-2"></textarea>
+                        <button class="btn-primary full-width mt-2" onclick="postReview()">Enviar Avaliação</button>
+                    </div>
                 </div>
             </div>
         </section>
