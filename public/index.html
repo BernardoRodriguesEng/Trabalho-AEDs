@@ -15,7 +15,13 @@
             <li class="active" onclick="showSection('search')">Buscar</li>
             <li onclick="showSection('add')">Adicionar</li>
             <li onclick="showSection('manage')">Gerenciar</li>
+            <li onclick="showSection('users')">Usuários</li>
         </ul>
+        <div class="current-user-info glass-panel">
+            <small>Logado como:</small>
+            <p id="active-user-name">Visitante</p>
+            <input type="hidden" id="active-user-id" value="0">
+        </div>
     </div>
 
     <main class="content">
@@ -34,6 +40,15 @@
                 <button class="btn-primary" onclick="searchGame()">Pesquisar</button>
             </div>
 
+            <div class="filter-box glass-panel mt-2">
+                <label>Filtro de Preço (Árvore B+):</label>
+                <div class="row">
+                    <input type="number" id="min-price" placeholder="Min $" step="0.01">
+                    <input type="number" id="max-price" placeholder="Max $" step="0.01">
+                    <button class="btn-secondary" onclick="searchByRange()">Filtrar por Preço</button>
+                </div>
+            </div>
+
             <div id="search-result" class="result-container hidden">
                 <div class="cycle-controls glass-panel">
                     <button class="btn-secondary" onclick="cycleResults(-1)">← Anterior</button>
@@ -43,6 +58,7 @@
 
                 <div class="game-details glass-panel">
                     <h3 id="res-name">Nome do Jogo</h3>
+                    <button class="btn-small btn-primary mb-2" onclick="addToLibrary()">+ Adicionar à minha Biblioteca</button>
                     <div class="tags">
                         <span class="tag" id="res-dev">Desenvolvedor</span>
                         <span class="tag" id="res-pub">Distribuidora</span>
@@ -269,6 +285,48 @@
                     <input type="text" id="del-name" placeholder="Nome exato do jogo...">
                 </div>
                 <button class="btn-danger" onclick="deleteGame()">Deletar Jogo</button>
+            </div>
+        </section>
+
+        <!-- Seção de Usuários e Biblioteca -->
+        <section id="users-section">
+            <header>
+                <h2>Gerenciador de Usuários</h2>
+                <p>Crie perfis e gerencie sua biblioteca pessoal.</p>
+            </header>
+
+            <div class="row">
+                <div class="col glass-panel">
+                    <h3>Criar Novo Usuário</h3>
+                    <div class="form-group">
+                        <label>Nome</label>
+                        <input type="text" id="new-user-name">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="new-user-email">
+                    </div>
+                    <button class="btn-primary full-width" onclick="createUser()">Criar Usuário</button>
+                </div>
+
+                <div class="col glass-panel">
+                    <h3>Selecionar Usuário Ativo</h3>
+                    <div class="form-group">
+                        <label>Usuários Disponíveis</label>
+                        <select id="user-selector" class="full-width" onchange="switchUser()">
+                            <option value="0">Visitante</option>
+                        </select>
+                    </div>
+                    <p class="form-hint">Selecione um usuário para gerenciar sua biblioteca e reviews.</p>
+                    <button class="btn-danger full-width mt-2" onclick="deleteUser()">Deletar Usuário Selecionado</button>
+                </div>
+            </div>
+
+            <div class="glass-panel mt-4">
+                <h3>Minha Biblioteca</h3>
+                <div id="user-library-list" class="library-grid mt-2">
+                    <p class="form-hint">Selecione um usuário para ver seus jogos.</p>
+                </div>
             </div>
         </section>
 

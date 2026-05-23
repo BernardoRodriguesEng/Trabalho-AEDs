@@ -1,0 +1,11 @@
+# Ignorar arquivos binários e de banco de dados
+*.bin
+*.out
+*.exe
+
+# Arquivos de Build
+.obj
+.o
+
+# Ignorar o plano de implementação (se aplicável ao ambiente local)
+implementation_plan.md

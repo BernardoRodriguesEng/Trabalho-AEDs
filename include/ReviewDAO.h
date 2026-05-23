@@ -28,6 +28,7 @@ public:
 
     bool atualizar(int idReview, const Review& r);
     bool remover(int idReview);
+    int removerPorJogo(int idJogo); // Integridade Referencial
 };
 
 #endif

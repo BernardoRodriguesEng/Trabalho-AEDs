@@ -97,7 +97,8 @@ string extractJsonField(const string& json, const string& key) {
     }
 }
 
-GameController::GameController(const string& binFilename) : binFilename(binFilename), dao(binFilename) {}
+GameController::GameController(const string& binFilename, const string& userBin, const string& libBin) 
+    : binFilename(binFilename), dao(binFilename), uDao(userBin), lDao(libBin) {}
 
 void GameController::run() {
     httplib::Server svr;
@@ -158,7 +159,7 @@ void GameController::run() {
         }
     });
 
-    // Deletar Jogo
+    // Deletar Jogo (com Integridade Referencial em Cascata)
     svr.Delete("/api/game", [this](const httplib::Request& req, httplib::Response& res) {
         if (!req.has_param("name")) {
             res.status = 400;
@@ -166,8 +167,22 @@ void GameController::run() {
             return;
         }
         string name = req.get_param_value("name");
-        if (dao.remove(name)) {
-            res.set_content("{\"message\":\"Game deleted successfully\"}", "application/json");
+        
+        // Buscar o jogo para obter o appid antes de deletar
+        Game g;
+        long pos;
+        if (dao.searchByName(name, g, pos)) {
+            int appid = g.getAppId();
+            
+            // Cascata: remove entries da biblioteca e reviews associadas
+            int libRemoved = lDao.removerPorJogo(appid);
+            ReviewDAO rDao("reviews.bin");
+            int revRemoved = rDao.removerPorJogo(appid);
+            
+            dao.remove(name);
+            
+            res.set_content("{\"message\":\"Game deleted successfully\", \"libraryEntriesRemoved\":" 
+                + to_string(libRemoved) + ", \"reviewsRemoved\":" + to_string(revRemoved) + "}", "application/json");
         } else {
             res.status = 404;
             res.set_content("{\"error\":\"Game not found\"}", "application/json");
@@ -362,6 +377,107 @@ void GameController::run() {
         } catch (exception& e) {
             res.status = 400;
             res.set_content("{\"error\":\"Failed to add review\"}", "application/json");
+        }
+    });
+
+    // --- FASE 3: BUSCA POR INTERVALO (ÁRVORE B+) ---
+    svr.Get("/api/games/range", [this](const httplib::Request& req, httplib::Response& res) {
+        float min = req.has_param("min") ? stof(req.get_param_value("min")) : 0.0f;
+        float max = req.has_param("max") ? stof(req.get_param_value("max")) : 999.0f;
+        
+        auto games = dao.searchByPriceRange(min, max);
+        string json = "{\"games\":[";
+        for(size_t i = 0; i < games.size(); i++) {
+            json += gameToJson(games[i]);
+            if(i < games.size() - 1) json += ",";
+        }
+        json += "]}";
+        res.set_content(json, "application/json");
+    });
+
+    // --- FASE 3: USUÁRIOS E BIBLIOTECA (N:N) ---
+    svr.Get("/api/users", [this](const httplib::Request& req, httplib::Response& res) {
+        auto users = uDao.listarTodos();
+        string json = "[";
+        for(size_t i = 0; i < users.size(); i++) {
+            json += "{\"id\":" + to_string(users[i].idUser) + ",\"nome\":\"" + users[i].nome + "\"}";
+            if(i < users.size() - 1) json += ",";
+        }
+        json += "]";
+        res.set_content(json, "application/json");
+    });
+
+    svr.Post("/api/user/add", [this](const httplib::Request& req, httplib::Response& res) {
+        string body = req.body;
+        User u;
+        u.nome = extractJsonField(body, "nome");
+        u.email = extractJsonField(body, "email");
+        u.setAtivo(true);
+        uDao.criar(u);
+        res.set_content("{\"id\":" + to_string(u.idUser) + "}", "application/json");
+    });
+
+    svr.Post("/api/library/add", [this](const httplib::Request& req, httplib::Response& res) {
+        string body = req.body;
+        LibraryEntry e;
+        e.idUser = stoi(extractJsonField(body, "idUser"));
+        e.idGame = stoi(extractJsonField(body, "idGame"));
+        e.setAtivo(true);
+        lDao.adicionar(e);
+        res.set_content("{\"message\":\"Success\"}", "application/json");
+    });
+
+    svr.Get("/api/library/user", [this](const httplib::Request& req, httplib::Response& res) {
+        int idUser = stoi(req.get_param_value("idUser"));
+        auto entries = lDao.buscarPorUsuario(idUser);
+        string json = "{\"games\":[";
+        for(size_t i = 0; i < entries.size(); i++) {
+            Game g;
+            long pos;
+            if(dao.searchById(entries[i].idGame, g, pos)) {
+                json += gameToJson(g);
+                if(i < entries.size() - 1) json += ",";
+            }
+        }
+        json += "]}";
+        res.set_content(json, "application/json");
+    });
+
+    // --- REMOVER JOGO DA BIBLIOTECA ---
+    svr.Delete("/api/library/remove", [this](const httplib::Request& req, httplib::Response& res) {
+        if (!req.has_param("idUser") || !req.has_param("idGame")) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Missing idUser or idGame\"}", "application/json");
+            return;
+        }
+        int idUser = stoi(req.get_param_value("idUser"));
+        int idGame = stoi(req.get_param_value("idGame"));
+        
+        if (lDao.remover(idUser, idGame)) {
+            res.set_content("{\"message\":\"Removido da biblioteca\"}", "application/json");
+        } else {
+            res.status = 404;
+            res.set_content("{\"error\":\"Entrada não encontrada\"}", "application/json");
+        }
+    });
+
+    // --- DELETAR USUÁRIO (com Integridade Referencial) ---
+    svr.Delete("/api/user/delete", [this](const httplib::Request& req, httplib::Response& res) {
+        if (!req.has_param("id")) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Missing id\"}", "application/json");
+            return;
+        }
+        int id = stoi(req.get_param_value("id"));
+        
+        // Cascata: remove todas as entradas da biblioteca deste usuário
+        int libRemoved = lDao.removerPorUsuario(id);
+        
+        if (uDao.deletar(id)) {
+            res.set_content("{\"message\":\"Usuário deletado\", \"libraryEntriesRemoved\":" + to_string(libRemoved) + "}", "application/json");
+        } else {
+            res.status = 404;
+            res.set_content("{\"error\":\"Usuário não encontrado\"}", "application/json");
         }
     });
 

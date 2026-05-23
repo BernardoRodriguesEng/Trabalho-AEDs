@@ -73,3 +73,8 @@ bool HashExtensivel::remover(int id) {
 
     return diretorio[indice]->remover(id);
 }
+
+bool HashExtensivel::removerPorOffset(int id, long offset) {
+    int indice = hash(id);
+    return diretorio[indice]->removerPorOffset(id, offset);
+}

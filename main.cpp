@@ -12,10 +12,14 @@
 #include "src/CSVConverter.cpp"
 #include "src/GameDAO.cpp"
 #include "src/GameController.cpp"
+#include "src/User.cpp"
 #include "src/Review.cpp"
 #include "src/ReviewDAO.cpp"
 #include "src/Hash.cpp"
 #include "src/HashExtensivel.cpp"
+#include "src/UserDAO.cpp"
+#include "src/LibraryDAO.cpp"
+#include "src/BPlusTree.cpp"
 #include "src/OrdenacaoExterna.cpp"
 
 using namespace std;
@@ -52,8 +56,8 @@ int main() {
         }
     }
 
-    // Desperta o controller (MVC)
-    GameController controller(binFilename);
+    // Desperta o controller (MVC) com suporte a Usuários e Biblioteca (N:N)
+    GameController controller(binFilename, "users.bin", "library.bin");
     
     // Inicia a aplicação
     controller.run();

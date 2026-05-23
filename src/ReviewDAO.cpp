@@ -169,12 +169,23 @@ bool ReviewDAO::remover(int idReview) {
     if (!hash.buscar(idReview, offset))
         return false;
 
-    // Remove do hash
-    hash.remover(idReview);
-
     fstream file(nomeArquivo, ios::binary | ios::in | ios::out);
     if (!file)
         return false;
+
+    // Lemos para descobrir o idJogo
+    file.seekg(offset);
+    int size;
+    file.read(reinterpret_cast<char*>(&size), sizeof(int));
+    char* buffer = new char[size];
+    file.read(buffer, size);
+    Review r;
+    r.desserializar(buffer);
+    delete[] buffer;
+
+    // Remove do hash
+    hash.remover(idReview);
+    hashJogo.removerPorOffset(r.idJogo, offset);
 
     file.seekp(offset);
     char lapide = '*';
@@ -183,4 +194,40 @@ bool ReviewDAO::remover(int idReview) {
     file.close();
 
     return true;
+}
+
+int ReviewDAO::removerPorJogo(int idJogo) {
+    vector<long> offsets = hashJogo.buscarTodos(idJogo);
+    if (offsets.empty()) return 0;
+
+    fstream file(nomeArquivo, ios::binary | ios::in | ios::out);
+    if (!file) return 0;
+
+    int count = 0;
+    for (long offset : offsets) {
+        file.seekg(offset);
+        int size;
+        file.read(reinterpret_cast<char*>(&size), sizeof(int));
+
+        char* buffer = new char[size];
+        file.read(buffer, size);
+
+        Review r;
+        r.desserializar(buffer);
+
+        if (r.isAtivo()) {
+            // Marca como deletado no arquivo
+            file.seekp(offset + sizeof(int)); // Pula o campo 'size', chega na lapide
+            char lapide = '*';
+            file.write(&lapide, sizeof(char));
+            
+            hash.remover(r.idReview);
+            hashJogo.removerPorOffset(idJogo, offset);
+            count++;
+        }
+        delete[] buffer;
+    }
+
+    file.close();
+    return count;
 }

@@ -21,6 +21,7 @@ public:
     vector<long> buscarTodos(int id);
 
     bool remover(int id);
+    bool removerPorOffset(int id, long offset);
 };
 
 #endif

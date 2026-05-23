@@ -13,6 +13,7 @@ private:
     int lastID;
 
     HashExtensivel hash;
+    class BPlusTree* priceIndex; // Árvore B+ para busca ordenada (Preço)
 
     void loadLastID();
     void saveLastID();
@@ -22,6 +23,7 @@ private:
 
 public:
     GameDAO(const std::string& fileName);
+    ~GameDAO();
     
     void create(Game& g);
     bool searchByName(const std::string& targetName, Game& found, long& pos);
@@ -31,6 +33,7 @@ public:
     bool remove(const std::string& targetName);
     void listActive(int limit);
     
+    std::vector<Game> searchByPriceRange(float min, float max);
     int getNextAppId();
 };
 

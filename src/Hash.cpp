@@ -41,3 +41,13 @@ bool Bucket::remover(int id) {
     }
     return false;
 }
+
+bool Bucket::removerPorOffset(int id, long offset) {
+    for (auto it = registros.begin(); it != registros.end(); ++it) {
+        if (it->id == id && it->offset == offset) {
+            registros.erase(it);
+            return true;
+        }
+    }
+    return false;
+}

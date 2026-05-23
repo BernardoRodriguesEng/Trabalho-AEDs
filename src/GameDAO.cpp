@@ -4,10 +4,14 @@
 #include <algorithm>
 #include <vector>
 
+#include "../include/BPlusTree.h"
+
 using namespace std;
 
 GameDAO::GameDAO(const string& fileName) 
     : fileName(fileName), hash(4) {
+
+    priceIndex = new BPlusTree("price_index.bin");
 
     indexFileName = fileName;
     size_t dotPos = indexFileName.find_last_of(".");
@@ -16,6 +20,10 @@ GameDAO::GameDAO(const string& fileName)
     
     loadLastID();
     reconstruirHash();
+}
+
+GameDAO::~GameDAO() {
+    delete priceIndex;
 }
 
 void GameDAO::loadLastID() {
@@ -52,6 +60,7 @@ void GameDAO::reconstruirHash() {
 
         if (g.isActive()) {
             hash.inserir(g.appid, pos);
+            priceIndex->inserir(g.price, pos);
         }
     }
 
@@ -101,6 +110,7 @@ void GameDAO::create(Game& g) {
     saveLastID();
 
     hash.inserir(g.appid, offset);
+    priceIndex->inserir(g.price, offset);
 }
 
 bool GameDAO::searchById(int appid, Game& found, long& pos) {
@@ -306,4 +316,24 @@ void GameDAO::listActive(int limit) {
 
 int GameDAO::getNextAppId() {
     return lastID + 1;
+}
+
+vector<Game> GameDAO::searchByPriceRange(float min, float max) {
+    auto offsets = priceIndex->buscarIntervalo(min, max);
+    vector<Game> results;
+    
+    ifstream inFile(fileName, ios::binary);
+    if (!inFile) return results;
+
+    for (long offset : offsets) {
+        inFile.seekg(offset);
+        Game g;
+        g.readFromStream(inFile);
+        if (g.isActive()) {
+            results.push_back(g);
+        }
+    }
+    
+    inFile.close();
+    return results;
 }

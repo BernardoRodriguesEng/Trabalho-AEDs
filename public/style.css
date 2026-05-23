@@ -329,3 +329,95 @@ button {
 .danger-zone {
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
+
+/* Fase 3 Styles */
+.current-user-info {
+    margin-top: auto;
+    padding: 1rem;
+    text-align: center;
+}
+
+.current-user-info p {
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.library-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.filter-box .row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.mb-2 { margin-bottom: 1rem; }
+.p-3 { padding: 1.5rem !important; }
+
+.loader {
+    text-align: center;
+    color: var(--primary);
+    padding: 1rem;
+    font-style: italic;
+}
+
+.library-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.2rem !important;
+}
+
+.library-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.library-card-info small {
+    color: var(--text-muted);
+}
+
+.btn-remove {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    white-space: nowrap;
+}
+
+.btn-remove:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.mt-2 { margin-top: 1rem; }
+
+.row {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.row > .col {
+    flex: 1;
+}
+
+textarea {
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: white;
+    padding: 0.7rem 1rem;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color 0.2s;
+}
+
+textarea:focus {
+    border-color: var(--primary);
+}

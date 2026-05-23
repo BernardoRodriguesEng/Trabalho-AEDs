@@ -23,41 +23,63 @@ function showToast(message, isError = false) {
 
 async function searchGame() {
     const type = document.getElementById('search-type').value;
-    const query = document.getElementById('search-input').value;
-    
-    if(!query) return showToast("Please enter a search query", true);
+    const input = document.getElementById('search-input').value;
+    if(!input) return showToast("Digite um termo para busca", true);
 
+    const url = type === 'name' ? `/api/searchByName?name=${encodeURIComponent(input)}` : 
+                                 `/api/searchById?id=${input}`;
+    
     try {
-        const url = type === 'name' 
-            ? `/api/searchByName?name=${encodeURIComponent(query)}`
-            : `/api/searchById?id=${encodeURIComponent(query)}`;
-            
         const res = await fetch(url);
-        if(!res.ok) throw new Error("Game not found");
+        if(!res.ok) throw new Error("Jogo não encontrado");
         
         const data = await res.json();
-        
         if (type === 'name') {
-            currentResults = data.games;
+            currentResults = data.games || [];
         } else {
-            currentResults = [data.game];
+            currentResults = data.game ? [data.game] : [];
         }
         
-        currentIndex = 0;
-        displayGame(currentResults[currentIndex]);
-        
-        const cycleControls = document.querySelector('.cycle-controls');
-        if (currentResults.length > 1) {
-            cycleControls.classList.remove('hidden');
-            updateCycleCounter();
-        } else {
-            cycleControls.classList.add('hidden');
+        if (currentResults.length === 0) {
+            showToast("Nenhum resultado encontrado", true);
+            document.getElementById('search-result').classList.add('hidden');
+            return;
         }
 
+        currentIndex = 0;
         document.getElementById('search-result').classList.remove('hidden');
+        displayGame(currentResults[currentIndex]);
+        updateCycleCounter();
         showToast(`Encontrado(s) ${currentResults.length} match(es)!`);
     } catch(e) {
         document.getElementById('search-result').classList.add('hidden');
+        showToast(e.message, true);
+    }
+}
+
+async function searchByRange() {
+    const min = document.getElementById('min-price').value || 0;
+    const max = document.getElementById('max-price').value || 999;
+    
+    try {
+        const res = await fetch(`/api/games/range?min=${min}&max=${max}`);
+        if(!res.ok) throw new Error("Erro na busca por faixa de preço");
+        
+        const data = await res.json();
+        currentResults = data.games || [];
+        
+        if (currentResults.length === 0) {
+            showToast("Nenhum jogo nesta faixa de preço", true);
+            document.getElementById('search-result').classList.add('hidden');
+            return;
+        }
+
+        currentIndex = 0;
+        document.getElementById('search-result').classList.remove('hidden');
+        displayGame(currentResults[currentIndex]);
+        updateCycleCounter();
+        showToast(`Encontrados ${currentResults.length} jogos.`);
+    } catch(e) {
         showToast(e.message, true);
     }
 }
@@ -307,6 +329,151 @@ async function deleteGame() {
         showToast(e.message, true);
     }
 }
+
+// --- FASE 3: USUÁRIOS E BIBLIOTECA ---
+
+async function createUser() {
+    const nome = document.getElementById('new-user-name').value;
+    const email = document.getElementById('new-user-email').value;
+    if(!nome || !email) return showToast("Preencha todos os campos", true);
+
+    try {
+        const res = await fetch('/api/user/add', {
+            method: 'POST',
+            body: JSON.stringify({ nome, email })
+        });
+        if(!res.ok) throw new Error("Erro ao criar usuário");
+        
+        showToast("Usuário criado com sucesso!");
+        document.getElementById('new-user-name').value = '';
+        document.getElementById('new-user-email').value = '';
+        loadUsers();
+    } catch(e) {
+        showToast(e.message, true);
+    }
+}
+
+async function loadUsers() {
+    try {
+        const res = await fetch('/api/users');
+        const users = await res.json();
+        const selector = document.getElementById('user-selector');
+        selector.innerHTML = '<option value="0">Visitante</option>';
+        
+        users.forEach(u => {
+            const opt = document.createElement('option');
+            opt.value = u.id;
+            opt.textContent = u.nome;
+            selector.appendChild(opt);
+        });
+    } catch(e) { console.error("Erro ao carregar usuários"); }
+}
+
+function switchUser() {
+    const selector = document.getElementById('user-selector');
+    const id = selector.value;
+    const name = selector.options[selector.selectedIndex].textContent;
+    
+    document.getElementById('active-user-id').value = id;
+    document.getElementById('active-user-name').textContent = name;
+    
+    if(id !== "0") {
+        loadUserLibrary(id);
+        // Preenche o campo de nome na review automaticamente
+        document.getElementById('rev-user').value = name;
+    } else {
+        document.getElementById('user-library-list').innerHTML = '<p class="form-hint">Selecione um usuário para ver seus jogos.</p>';
+    }
+}
+
+async function addToLibrary() {
+    const userId = document.getElementById('active-user-id').value;
+    const gameId = document.getElementById('res-appid').textContent;
+    
+    if(userId === "0") return showToast("Selecione um usuário primeiro!", true);
+    if(!gameId || gameId === "0") return showToast("Busque um jogo primeiro!", true);
+
+    try {
+        const res = await fetch('/api/library/add', {
+            method: 'POST',
+            body: JSON.stringify({ idUser: parseInt(userId), idGame: parseInt(gameId) })
+        });
+        if(!res.ok) throw new Error("Erro ao adicionar à biblioteca");
+        
+        showToast("Jogo adicionado à sua biblioteca!");
+        loadUserLibrary(userId);
+    } catch(e) {
+        showToast(e.message, true);
+    }
+}
+
+async function removeFromLibrary(idUser, idGame) {
+    if(!confirm('Remover este jogo da sua biblioteca?')) return;
+    try {
+        const res = await fetch(`/api/library/remove?idUser=${idUser}&idGame=${idGame}`, {
+            method: 'DELETE'
+        });
+        if(!res.ok) throw new Error("Erro ao remover da biblioteca");
+        showToast("Jogo removido da biblioteca!");
+        loadUserLibrary(idUser);
+    } catch(e) {
+        showToast(e.message, true);
+    }
+}
+
+async function deleteUser() {
+    const selector = document.getElementById('user-selector');
+    const userId = selector.value;
+    if(userId === "0") return showToast("Selecione um usuário para deletar", true);
+    const userName = selector.options[selector.selectedIndex].textContent;
+    if(!confirm(`Deletar o usuário "${userName}" e toda a sua biblioteca?`)) return;
+
+    try {
+        const res = await fetch(`/api/user/delete?id=${userId}`, { method: 'DELETE' });
+        if(!res.ok) throw new Error("Erro ao deletar usuário");
+        showToast("Usuário deletado com sucesso!");
+        document.getElementById('active-user-id').value = '0';
+        document.getElementById('active-user-name').textContent = 'Visitante';
+        loadUsers();
+        document.getElementById('user-library-list').innerHTML = '<p class="form-hint">Selecione um usuário para ver seus jogos.</p>';
+    } catch(e) {
+        showToast(e.message, true);
+    }
+}
+
+async function loadUserLibrary(userId) {
+    const container = document.getElementById('user-library-list');
+    container.innerHTML = '<div class="loader">Carregando biblioteca...</div>';
+    
+    try {
+        const res = await fetch(`/api/library/user?idUser=${userId}`);
+        const data = await res.json();
+        container.innerHTML = '';
+        
+        if(data.games && data.games.length > 0) {
+            data.games.forEach(game => {
+                const card = document.createElement('div');
+                card.className = 'library-card glass-panel';
+                card.innerHTML = `
+                    <div class="library-card-info">
+                        <strong>${game.name}</strong>
+                        <small>${game.developer}</small>
+                        <span class="tag price">${game.price > 0 ? '$' + game.price.toFixed(2) : 'Grátis'}</span>
+                    </div>
+                    <button class="btn-small btn-remove" onclick="removeFromLibrary(${userId}, ${game.appid})">✕ Remover</button>
+                `;
+                container.appendChild(card);
+            });
+        } else {
+            container.innerHTML = '<p class="form-hint">Sua biblioteca está vazia.</p>';
+        }
+    } catch(e) { container.innerHTML = '<p class="text-danger">Erro ao carregar biblioteca.</p>'; }
+}
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', () => {
+    loadUsers();
+});
 
 
 
