@@ -19,7 +19,7 @@ private:
     void saveLastID();
     std::string toLowerCase(std::string str);
 
-    void reconstruirHash();
+    void reconstruirHash(bool rebuildBPlusTree);
 
 public:
     GameDAO(const std::string& fileName);
