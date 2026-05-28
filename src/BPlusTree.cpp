@@ -3,6 +3,12 @@
 BPlusTree::BPlusTree(string filename) : filename(filename) {
     raiz_offset = lerRaiz();
     if (raiz_offset == -1) {
+        // Reservamos o espaco do cabecalho (raiz_offset) no inicio do arquivo
+        ofstream file(filename, ios::binary | ios::out);
+        long placeholder = -1;
+        file.write((char*)&placeholder, sizeof(long));
+        file.close();
+
         raiz_offset = criarNodo(true);
         gravarRaiz(raiz_offset);
     }
@@ -48,7 +54,14 @@ long BPlusTree::criarNodo(bool folha) {
     Nodo nodo;
     nodo.folha = folha;
     
-    ofstream file(filename, ios::binary | ios::app);
+    fstream file(filename, ios::binary | ios::in | ios::out);
+    if (!file.is_open()) {
+        ofstream create(filename, ios::binary);
+        create.close();
+        file.open(filename, ios::binary | ios::in | ios::out);
+    }
+    
+    file.seekp(0, ios::end);
     long offset = file.tellp();
     file.write((char*)&nodo, sizeof(Nodo));
     file.close();

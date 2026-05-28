@@ -8,8 +8,17 @@
 
 using namespace std;
 
+#include <cstdio>
+
 GameDAO::GameDAO(const string& fileName) 
     : fileName(fileName), hash(4) {
+
+    // Verifica se o indice da B+ Tree ja existia antes
+    ifstream testFile("price_index.bin");
+    bool indexExists = testFile.is_open();
+    if (indexExists) {
+        testFile.close();
+    }
 
     priceIndex = new BPlusTree("price_index.bin");
 
@@ -19,7 +28,7 @@ GameDAO::GameDAO(const string& fileName)
     indexFileName += "_index.bin";
     
     loadLastID();
-    reconstruirHash();
+    reconstruirHash(!indexExists);
 }
 
 GameDAO::~GameDAO() {
@@ -45,7 +54,7 @@ void GameDAO::saveLastID() {
     }
 }
 
-void GameDAO::reconstruirHash() {
+void GameDAO::reconstruirHash(bool rebuildBPlusTree) {
     ifstream file(fileName, ios::binary);
 
     if (!file) return;
@@ -60,7 +69,9 @@ void GameDAO::reconstruirHash() {
 
         if (g.isActive()) {
             hash.inserir(g.appid, pos);
-            priceIndex->inserir(g.price, pos);
+            if (rebuildBPlusTree) {
+                priceIndex->inserir(g.price, pos);
+            }
         }
     }
 

@@ -7,6 +7,9 @@ if exist steam_index.bin del steam_index.bin
 if exist steam_ordenado.bin del steam_ordenado.bin
 if exist reviews.bin del reviews.bin
 if exist review_index.bin del review_index.bin
+if exist price_index.bin del price_index.bin
+if exist users.bin del users.bin
+if exist library.bin del library.bin
 
 if exist temp rmdir /s /q temp
 
