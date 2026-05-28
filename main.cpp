@@ -7,6 +7,8 @@
 #include "include/Review.h"
 #include "include/ReviewDAO.h"
 #include "include/OrdenacaoExterna.h"
+#include "include/Compressao/LZW.h"
+#include "include/Compressao/Huffman.h"
 
 #include "src/Game.cpp"
 #include "src/CSVConverter.cpp"
@@ -21,8 +23,78 @@
 #include "src/LibraryDAO.cpp"
 #include "src/BPlusTree.cpp"
 #include "src/OrdenacaoExterna.cpp"
+#include "src/Compressao/LZW.cpp"
+#include "src/Compressao/Huffman.cpp"
 
 using namespace std;
+
+long getFileSize(const string& filename) {
+    ifstream file(filename, ios::binary | ios::ate);
+
+    if (!file)
+        return -1;
+
+    return file.tellg();
+}
+
+void testarCompressoes() {
+    cout << "\n========================================\n";
+    cout << "TESTE DE COMPRESSAO\n";
+    cout << "========================================\n";
+
+    string original = "steam.bin";
+
+    // ---------------- LZW ----------------
+
+    cout << "\n[LZW]\n";
+
+    LZW::compress(original, "steam_lzw.bin");
+    LZW::decompress("steam_lzw.bin", "steam_lzw_restored.bin");
+
+    long originalSize = getFileSize(original);
+    long compressedLZW = getFileSize("steam_lzw.bin");
+    long restoredLZW = getFileSize("steam_lzw_restored.bin");
+
+    cout << "Original:      " << originalSize << " bytes\n";
+    cout << "Comprimido:    " << compressedLZW << " bytes\n";
+    cout << "Restaurado:    " << restoredLZW << " bytes\n";
+
+    float taxaLZW = (1.0f - ((float)compressedLZW / originalSize)) * 100;
+    cout << "Taxa de compressao: " << taxaLZW << "%\n";
+
+    if(restoredLZW == originalSize){
+        cout << "Restauracao LZW OK!\n";
+    }
+    else{
+        cout << "Restauracao LZW DIFERENTE!\n";
+    }
+
+    // ---------------- HUFFMAN ----------------
+
+    cout << "\n[HUFFMAN]\n";
+
+    Huffman::compress(original, "steam_huffman.bin");
+    Huffman::decompress("steam_huffman.bin", "steam_huffman_restored.bin");
+
+    long compressedHuffman = getFileSize("steam_huffman.bin");
+    long restoredHuffman = getFileSize("steam_huffman_restored.bin");
+
+    cout << "Original:      " << originalSize << " bytes\n";
+    cout << "Comprimido:    " << compressedHuffman << " bytes\n";
+    cout << "Restaurado:    " << restoredHuffman << " bytes\n";
+
+    float taxaHuffman = (1.0f - ((float)compressedHuffman / originalSize)) * 100;
+    cout << "Taxa de compressao: " << taxaHuffman << "%\n";
+
+    if(restoredHuffman == originalSize){
+        cout << "Restauracao Huffman OK!\n";
+    }
+    else{
+        cout << "Restauracao Huffman DIFERENTE!\n";
+    }
+
+    cout << "========================================\n";
+}
 
 int main() {
     string csvFilename = "steam.csv";
@@ -60,6 +132,7 @@ int main() {
     GameController controller(binFilename, "users.bin", "library.bin");
     
     // Inicia a aplicação
+    testarCompressoes();
     controller.run();
 
     return 0;
