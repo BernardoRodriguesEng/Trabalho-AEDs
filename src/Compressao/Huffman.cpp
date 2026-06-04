@@ -1,236 +1,268 @@
-using namespace std;
-
 #include "../../include/Compressao/Huffman.h"
-
-#include <fstream>
-#include <queue>
-#include <vector>
-#include <bitset>
+#include "../../include/Compressao/GerenciadorArquivo.h"
 #include <iostream>
 
+using namespace std;
 
-HuffmanNode::HuffmanNode(char c, int f){
-    ch = c;
-    freq = f;
+NoHuffman::NoHuffman(char c, int f)
+    : caractere(c), frequencia(f), filhoEsq(nullptr), filhoDir(nullptr) {}
 
-    left = nullptr;
-    right = nullptr;
+static void construirCodigos(NoHuffman* no, const string& codigoAtual, string* codigosHuffman) {
+    if (!no) return;
+
+    if (!no->filhoEsq && !no->filhoDir) {
+        codigosHuffman[static_cast<unsigned char>(no->caractere)] = codigoAtual;
+    }
+
+    construirCodigos(no->filhoEsq, codigoAtual + "0", codigosHuffman);
+    construirCodigos(no->filhoDir, codigoAtual + "1", codigosHuffman);
 }
 
-struct Compare{
-    bool operator()(HuffmanNode* a, HuffmanNode* b){
-        return a->freq > b->freq;
-    }
-};
-
-void buildCodes(HuffmanNode* root, string code, unordered_map<char, string>& huffmanCode){
-    if(!root){
-        return;
-    }
-    if(!root->left && !root->right){
-        huffmanCode[root->ch] = code;
-    }
-
-    buildCodes(root->left, code + "0", huffmanCode);
-
-    buildCodes(root->right, code + "1", huffmanCode);
+static void deletarArvore(NoHuffman* no) {
+    if (!no) return;
+    deletarArvore(no->filhoEsq);
+    deletarArvore(no->filhoDir);
+    delete no;
 }
 
-void Huffman::compress(const string& inputFile, const string& outputFile){
-
-    ifstream in(inputFile, ios::binary);
-
-    if(!in){
-        cout << "Erro ao abrir arquivo.\n";
-
+void Huffman::comprimir(const string& arquivoEntrada, const string& arquivoSaida) {
+    GerenciadorArquivo arqEntrada(arquivoEntrada, "rb");
+    if (!arqEntrada.estaAberto()) {
+        cerr << "Erro: Nao foi possivel abrir o arquivo de entrada: " << arquivoEntrada << endl;
         return;
     }
 
-    string text((istreambuf_iterator<char>(in)), istreambuf_iterator<char>());
+    string texto = arqEntrada.lerTudo();
+    arqEntrada.fechar();
 
-    in.close();
-
-    unordered_map<char, int> freq;
-
-    for(char ch : text){
-        freq[ch]++;
+    if (texto.empty()) {
+        cerr << "Aviso: O arquivo de entrada esta vazio.\n";
+        return;
     }
 
-    priority_queue<HuffmanNode*, vector<HuffmanNode*>, Compare> pq;
-
-    for(auto pair : freq){
-        pq.push(new HuffmanNode(pair.first, pair.second));
+    int frequencias[256] = {0};
+    for (char c : texto) {
+        frequencias[static_cast<unsigned char>(c)]++;
     }
 
-    while(pq.size() != 1){
-        HuffmanNode* left = pq.top();
-        pq.pop();
-
-        HuffmanNode* right = pq.top();
-        pq.pop();
-
-        HuffmanNode* sum = new HuffmanNode('\0', left->freq + right->freq);
-
-        sum->left = left;
-        sum->right = right;
-
-        pq.push(sum);
-    }
-
-    HuffmanNode* root = pq.top();
-
-    unordered_map<char, string> huffmanCode;
-
-    buildCodes(root, "", huffmanCode);
-
-    string encoded;
-
-    for(char ch : text){
-        encoded += huffmanCode[ch];
-    }
-
-    ofstream out(outputFile, ios::binary);
-
-    int tableSize = freq.size();
-
-    out.write(reinterpret_cast<char*>(&tableSize), sizeof(int));
-
-    for(auto pair : freq){
-        out.write(&pair.first, sizeof(char));
-
-        out.write(reinterpret_cast<char*>(&pair.second), sizeof(int));
-    }
-
-    int encodedSize = encoded.size();
-
-    out.write(reinterpret_cast<char*>(&encodedSize), sizeof(int));
-
-    unsigned char byte = 0;
-    int bitCount = 0;
-
-    for(char bit : encoded){
-        byte <<= 1;
-
-        if(bit == '1'){
-            byte |= 1;
-        }
-
-        bitCount++;
-
-        if(bitCount == 8){
-            out.write(reinterpret_cast<char*>(&byte), 1);
-
-        byte = 0;
-            bitCount = 0;
+    int qtdNosAtivos = 0;
+    NoHuffman* nosAtivos[256];
+    for (int i = 0; i < 256; i++) {
+        if (frequencias[i] > 0) {
+            nosAtivos[qtdNosAtivos++] = new NoHuffman(static_cast<char>(i), frequencias[i]);
         }
     }
 
-    if(bitCount > 0){
-        byte <<= (8 - bitCount);
+    while (qtdNosAtivos > 1) {
+        int idxMin1 = -1;
+        int idxMin2 = -1;
 
-        out.write(reinterpret_cast<char*>(&byte), 1);
+        for (int i = 0; i < qtdNosAtivos; i++) {
+            if (idxMin1 == -1 || nosAtivos[i]->frequencia < nosAtivos[idxMin1]->frequencia) {
+                idxMin2 = idxMin1;
+                idxMin1 = i;
+            } else if (idxMin2 == -1 || nosAtivos[i]->frequencia < nosAtivos[idxMin2]->frequencia) {
+                idxMin2 = i;
+            }
+        }
+
+        NoHuffman* esq = nosAtivos[idxMin1];
+        NoHuffman* dir = nosAtivos[idxMin2];
+        NoHuffman* pai = new NoHuffman('\0', esq->frequencia + dir->frequencia);
+        pai->filhoEsq = esq;
+        pai->filhoDir = dir;
+
+        int idxRemover1 = max(idxMin1, idxMin2);
+        int idxRemover2 = min(idxMin1, idxMin2);
+
+        nosAtivos[idxRemover1] = nosAtivos[qtdNosAtivos - 1];
+        qtdNosAtivos--;
+        nosAtivos[idxRemover2] = nosAtivos[qtdNosAtivos - 1];
+        qtdNosAtivos--;
+
+        nosAtivos[qtdNosAtivos++] = pai;
     }
 
-    out.close();
+    NoHuffman* raiz = (qtdNosAtivos > 0) ? nosAtivos[0] : nullptr;
 
-    cout << "Compactacao Huffman concluida!\n";
-}
+    string codigosHuffman[256];
+    construirCodigos(raiz, "", codigosHuffman);
 
-void Huffman::decompress(const string& inputFile, const string& outputFile){
-    ifstream in(inputFile, ios::binary);
+    string textoCodificado;
+    for (char c : texto) {
+        textoCodificado += codigosHuffman[static_cast<unsigned char>(c)];
+    }
 
-    if(!in){
-        cout << "Erro ao abrir arquivo.\n";
+    GerenciadorArquivo arqSaida(arquivoSaida, "wb");
+    if (!arqSaida.estaAberto()) {
+        cerr << "Erro: Nao foi possivel criar o arquivo de saida: " << arquivoSaida << endl;
+        deletarArvore(raiz);
         return;
     }
 
-    unordered_map<char, int> freq;
-
-    int tableSize;
-
-    in.read(reinterpret_cast<char*>(&tableSize), sizeof(int));
-
-    for(int i = 0; i < tableSize; i++){
-        char ch;
-        int frequency;
-
-        in.read(&ch, sizeof(char));
-
-        in.read(reinterpret_cast<char*>(&frequency), sizeof(int));
-
-        freq[ch] = frequency;
+    int charsUnicos = 0;
+    for (int i = 0; i < 256; i++) {
+        if (frequencias[i] > 0) charsUnicos++;
     }
 
-    int originalSize = 0;
+    arqSaida.escrever(&charsUnicos, sizeof(int), 1);
 
-    for(auto pair : freq){
-        originalSize += pair.second;
+    for (int i = 0; i < 256; i++) {
+        if (frequencias[i] > 0) {
+            char ch = static_cast<char>(i);
+            arqSaida.escrever(&ch, sizeof(char), 1);
+            arqSaida.escrever(&frequencias[i], sizeof(int), 1);
+        }
     }
 
-    priority_queue<HuffmanNode*, vector<HuffmanNode*>, Compare> pq;
+    int tamCodificado = textoCodificado.size();
+    arqSaida.escrever(&tamCodificado, sizeof(int), 1);
 
-    for(auto pair : freq){
-        pq.push(new HuffmanNode(pair.first, pair.second));
+    unsigned char byteAtual = 0;
+    int qtdBits = 0;
+
+    for (char bit : textoCodificado) {
+        byteAtual <<= 1;
+        if (bit == '1') {
+            byteAtual |= 1;
+        }
+
+        qtdBits++;
+        if (qtdBits == 8) {
+            arqSaida.escrever(&byteAtual, 1, 1);
+            byteAtual = 0;
+            qtdBits = 0;
+        }
     }
 
-    while(pq.size() != 1){
-        HuffmanNode* left = pq.top();
-        pq.pop();
-
-        HuffmanNode* right = pq.top();
-        pq.pop();
-
-        HuffmanNode* sum = new HuffmanNode('\0', left->freq + right->freq);
-
-        sum->left = left;
-        sum->right = right;
-
-        pq.push(sum);
+    if (qtdBits > 0) {
+        byteAtual <<= (8 - qtdBits);
+        arqSaida.escrever(&byteAtual, 1, 1);
     }
 
-    HuffmanNode* root = pq.top();
+    arqSaida.fechar();
+    deletarArvore(raiz);
 
-    int encodedSize;
+    cout << "Compactacao Huffman concluida com sucesso!\n";
+}
 
-    in.read(reinterpret_cast<char*>(&encodedSize), sizeof(int));
-
-    string encoded;
-    char byte;
-
-    while(in.read(&byte, 1)){
-        bitset<8> bits((unsigned char)byte);
-
-        encoded += bits.to_string();
+void Huffman::descomprimir(const string& arquivoEntrada, const string& arquivoSaida) {
+    GerenciadorArquivo arqEntrada(arquivoEntrada, "rb");
+    if (!arqEntrada.estaAberto()) {
+        cerr << "Erro: Nao foi possivel abrir o arquivo compactado: " << arquivoEntrada << endl;
+        return;
     }
 
-    encoded = encoded.substr(0, encodedSize);
+    int charsUnicos = 0;
+    if (arqEntrada.ler(&charsUnicos, sizeof(int), 1) != 1) {
+        charsUnicos = 0;
+    }
 
-    in.close();
+    int frequencias[256] = {0};
+    int tamTextoOriginal = 0;
 
-    string decoded;
+    for (int i = 0; i < charsUnicos; i++) {
+        char c;
+        int freq;
 
-    HuffmanNode* current = root;
+        arqEntrada.ler(&c, sizeof(char), 1);
+        arqEntrada.ler(&freq, sizeof(int), 1);
 
-    for(char bit : encoded){
-        if(decoded.size() >= originalSize){
+        frequencias[static_cast<unsigned char>(c)] = freq;
+        tamTextoOriginal += freq;
+    }
+
+    if (tamTextoOriginal == 0) {
+        cerr << "Aviso: Arquivo de entrada sem dados de frequencia validos.\n";
+        arqEntrada.fechar();
+        return;
+    }
+
+    int qtdNosAtivos = 0;
+    NoHuffman* nosAtivos[256];
+    for (int i = 0; i < 256; i++) {
+        if (frequencias[i] > 0) {
+            nosAtivos[qtdNosAtivos++] = new NoHuffman(static_cast<char>(i), frequencias[i]);
+        }
+    }
+
+    while (qtdNosAtivos > 1) {
+        int idxMin1 = -1;
+        int idxMin2 = -1;
+
+        for (int i = 0; i < qtdNosAtivos; i++) {
+            if (idxMin1 == -1 || nosAtivos[i]->frequencia < nosAtivos[idxMin1]->frequencia) {
+                idxMin2 = idxMin1;
+                idxMin1 = i;
+            } else if (idxMin2 == -1 || nosAtivos[i]->frequencia < nosAtivos[idxMin2]->frequencia) {
+                idxMin2 = i;
+            }
+        }
+
+        NoHuffman* esq = nosAtivos[idxMin1];
+        NoHuffman* dir = nosAtivos[idxMin2];
+        NoHuffman* pai = new NoHuffman('\0', esq->frequencia + dir->frequencia);
+        pai->filhoEsq = esq;
+        pai->filhoDir = dir;
+
+        int idxRemover1 = max(idxMin1, idxMin2);
+        int idxRemover2 = min(idxMin1, idxMin2);
+
+        nosAtivos[idxRemover1] = nosAtivos[qtdNosAtivos - 1];
+        qtdNosAtivos--;
+        nosAtivos[idxRemover2] = nosAtivos[qtdNosAtivos - 1];
+        qtdNosAtivos--;
+
+        nosAtivos[qtdNosAtivos++] = pai;
+    }
+
+    NoHuffman* raiz = (qtdNosAtivos > 0) ? nosAtivos[0] : nullptr;
+
+    int tamCodificado = 0;
+    arqEntrada.ler(&tamCodificado, sizeof(int), 1);
+
+    string bitsCodificados;
+    unsigned char byteLido;
+
+    while (arqEntrada.ler(&byteLido, 1, 1) == 1) {
+        for (int i = 7; i >= 0; i--) {
+            char bit = ((byteLido >> i) & 1) ? '1' : '0';
+            bitsCodificados += bit;
+        }
+    }
+    arqEntrada.fechar();
+
+    if (bitsCodificados.size() > static_cast<size_t>(tamCodificado)) {
+        bitsCodificados = bitsCodificados.substr(0, tamCodificado);
+    }
+
+    string textoDecodificado;
+    textoDecodificado.reserve(tamTextoOriginal);
+
+    NoHuffman* noAtual = raiz;
+    for (char bit : bitsCodificados) {
+        if (textoDecodificado.size() >= static_cast<size_t>(tamTextoOriginal)) {
             break;
         }
-        if(bit == '0'){
-            current = current->left;
-        }else{
-            current = current->right;
-        }
-        if(!current->left && !current->right){
-            decoded += current->ch;
-            current = root;
+
+        noAtual = (bit == '0') ? noAtual->filhoEsq : noAtual->filhoDir;
+
+        if (!noAtual->filhoEsq && !noAtual->filhoDir) {
+            textoDecodificado += noAtual->caractere;
+            noAtual = raiz;
         }
     }
 
-    ofstream out(outputFile, ios::binary);
+    deletarArvore(raiz);
 
-    out.write(decoded.c_str(), decoded.size());
+    GerenciadorArquivo arqSaida(arquivoSaida, "wb");
+    if (!arqSaida.estaAberto()) {
+        cerr << "Erro: Nao foi possivel criar o arquivo de saida descompactado: " << arquivoSaida << endl;
+        return;
+    }
 
-    out.close();
+    arqSaida.escrever(textoDecodificado.c_str(), 1, textoDecodificado.size());
+    arqSaida.fechar();
 
-    cout << "Descompactacao Huffman concluida!\n";
+    cout << "Descompactacao Huffman concluida.\n";
 }

@@ -48,8 +48,8 @@ void testarCompressoes() {
 
     cout << "\n[LZW]\n";
 
-    LZW::compress(original, "steam_lzw.bin");
-    LZW::decompress("steam_lzw.bin", "steam_lzw_restored.bin");
+    LZW::comprimir(original, "steam_lzw.bin");
+    LZW::descomprimir("steam_lzw.bin", "steam_lzw_restored.bin");
 
     long originalSize = getFileSize(original);
     long compressedLZW = getFileSize("steam_lzw.bin");
@@ -73,8 +73,8 @@ void testarCompressoes() {
 
     cout << "\n[HUFFMAN]\n";
 
-    Huffman::compress(original, "steam_huffman.bin");
-    Huffman::decompress("steam_huffman.bin", "steam_huffman_restored.bin");
+    Huffman::comprimir(original, "steam_huffman.bin");
+    Huffman::descomprimir("steam_huffman.bin", "steam_huffman_restored.bin");
 
     long compressedHuffman = getFileSize("steam_huffman.bin");
     long restoredHuffman = getFileSize("steam_huffman_restored.bin");

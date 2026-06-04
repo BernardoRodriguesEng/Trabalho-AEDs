@@ -1,101 +1,131 @@
+#include "../../include/Compressao/LZW.h"
+#include "../../include/Compressao/GerenciadorArquivo.h"
+#include "../../include/Compressao/TrieLZW.h"
+#include "../../include/Compressao/ArranjosDinamicos.h"
+#include <iostream>
+#include <string>
+
 using namespace std;
 
-#include "../../include/Compressao/LZW.h"
+static const int TAM_INICIAL_DICIONARIO = 256;
 
-#include <string>
-#include <vector>
-#include <fstream>
-#include <unordered_map>
-
-void LZW::compress(const string& inputFile, const string& outputFile){
-    ifstream in(inputFile, ios::binary);
-
-    if(!in){
+void LZW::comprimir(const string& arquivoEntrada, const string& arquivoSaida) {
+    GerenciadorArquivo arqEntrada(arquivoEntrada, "rb");
+    if (!arqEntrada.estaAberto()) {
+        cerr << "Erro: Nao foi possivel abrir o arquivo de entrada: " << arquivoEntrada << endl;
         return;
     }
 
-    string data((istreambuf_iterator<char>(in)), istreambuf_iterator<char>());
+    string dadosArquivo = arqEntrada.lerTudo();
+    arqEntrada.fechar();
 
-    in.close();
-
-    unordered_map<string, int> dictionary;
-
-    for(int i = 0; i < 256; i++){
-        dictionary[string(1, char(i))] = i;
+    if (dadosArquivo.empty()) {
+        cerr << "Aviso: O arquivo de entrada esta vazio.\n";
+        return;
     }
 
-    string current;
-    vector<int> compressed;
-    int dictSize = 256;
+    NoTrieLZW* dicionario = new NoTrieLZW();
+    for (int i = 0; i < TAM_INICIAL_DICIONARIO; i++) {
+        dicionario->filhos[i] = new NoTrieLZW(i);
+    }
 
-    for(char c : data){
-        string next = current + c;
+    int tamAtualDicionario = TAM_INICIAL_DICIONARIO;
+    NoTrieLZW* noAtual = dicionario;
+    ArrayDinamicoInt codigosComprimidos;
 
-        if(dictionary.count(next)){
-            current = next;
-        }else{
-            compressed.push_back(dictionary[current]);
-            dictionary[next] = dictSize++;
-            current = string(1, c);
+    for (char caractere : dadosArquivo) {
+        unsigned char uc = static_cast<unsigned char>(caractere);
+        
+        if (noAtual->filhos[uc] != nullptr) {
+            noAtual = noAtual->filhos[uc];
+        } else {
+            codigosComprimidos.adicionar(noAtual->codigo);
+            
+            noAtual->filhos[uc] = new NoTrieLZW(tamAtualDicionario++);
+            
+            noAtual = dicionario->filhos[uc];
         }
     }
 
-    if(!current.empty()){
-        compressed.push_back(dictionary[current]);
+    if (noAtual != dicionario) {
+        codigosComprimidos.adicionar(noAtual->codigo);
     }
 
-    ofstream out(outputFile, ios::binary);
-
-    for(int code : compressed){
-        out.write(reinterpret_cast<char*>(&code), sizeof(int));
+    GerenciadorArquivo arqSaida(arquivoSaida, "wb");
+    if (!arqSaida.estaAberto()) {
+        cerr << "Erro: Nao foi possivel criar o arquivo de saida: " << arquivoSaida << endl;
+        delete dicionario;
+        return;
     }
 
-    out.close();
+    for (int i = 0; i < codigosComprimidos.tamanho; i++) {
+        arqSaida.escrever(&codigosComprimidos.dados[i], sizeof(int), 1);
+    }
+
+    arqSaida.fechar();
+    delete dicionario;
+
+    cout << "Compactacao LZW concluida com sucesso!\n";
 }
 
-void LZW::decompress(const string& inputFile, const string& outputFile){
-    ifstream in(inputFile, ios::binary);
-
-    if(!in){
+void LZW::descomprimir(const string& arquivoEntrada, const string& arquivoSaida) {
+    GerenciadorArquivo arqEntrada(arquivoEntrada, "rb");
+    if (!arqEntrada.estaAberto()) {
+        cerr << "Erro: Nao foi possivel abrir o arquivo compactado: " << arquivoEntrada << endl;
         return;
     }
 
-    vector<int> compressed;
-    int code;
+    ArrayDinamicoInt codigosComprimidos;
+    int codigoAtual;
+    while (arqEntrada.ler(&codigoAtual, sizeof(int), 1) == 1) {
+        codigosComprimidos.adicionar(codigoAtual);
+    }
+    arqEntrada.fechar();
 
-    while(in.read(reinterpret_cast<char*>(&code), sizeof(int))){
-        compressed.push_back(code);
+    if (codigosComprimidos.tamanho == 0) {
+        cerr << "Aviso: O arquivo compactado esta vazio ou corrompido.\n";
+        return;
     }
 
-    in.close();
-
-    unordered_map<int, string> dictionary;
-
-    for(int i = 0; i < 256; i++){
-        dictionary[i] = string(1, char(i));
+    ArrayDinamicoString dicionario;
+    
+    for (int i = 0; i < TAM_INICIAL_DICIONARIO; i++) {
+        dicionario.adicionar(string(1, static_cast<char>(i)));
     }
 
-    int dictSize = 256;
-    string previous = dictionary[compressed[0]];
-    string result = previous;
+    int tamAtualDicionario = TAM_INICIAL_DICIONARIO;
+    string stringAnterior = dicionario.dados[codigosComprimidos.dados[0]];
+    string resultadoDescomprimido = stringAnterior;
 
-    for(size_t i = 1; i < compressed.size(); i++){
-        string entry;
+    for (int i = 1; i < codigosComprimidos.tamanho; i++) {
+        int codigo = codigosComprimidos.dados[i];
+        string entrada;
 
-        if(dictionary.count(compressed[i])){
-            entry = dictionary[compressed[i]];
-        }else{
-            entry = previous + previous[0];
+        if (codigo < dicionario.tamanho) {
+            entrada = dicionario.dados[codigo];
+        } else if (codigo == tamAtualDicionario) {
+            entrada = stringAnterior + stringAnterior[0];
+        } else {
+            cerr << "Erro: Codigo LZW invalido detectado no arquivo compactado.\n";
+            return;
         }
 
-        result += entry;
+        resultadoDescomprimido += entrada;
 
-        dictionary[dictSize++] = previous + entry[0];
-
-        previous = entry;
+        dicionario.adicionar(stringAnterior + entrada[0]);
+        tamAtualDicionario++;
+        
+        stringAnterior = entrada;
     }
 
-    ofstream out(outputFile, ios::binary);
-    out.write(result.c_str(), result.size());
-    out.close();
+    GerenciadorArquivo arqSaida(arquivoSaida, "wb");
+    if (!arqSaida.estaAberto()) {
+        cerr << "Erro: Nao foi possivel criar o arquivo de saida descompactado: " << arquivoSaida << endl;
+        return;
+    }
+
+    arqSaida.escrever(resultadoDescomprimido.c_str(), 1, resultadoDescomprimido.size());
+    arqSaida.fechar();
+
+    cout << "Descompactacao LZW concluida.\n";
 }

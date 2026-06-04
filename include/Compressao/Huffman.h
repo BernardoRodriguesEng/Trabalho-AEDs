@@ -1,25 +1,22 @@
-using namespace std;
-
 #ifndef HUFFMAN_H
 #define HUFFMAN_H
 
 #include <string>
-#include <unordered_map>
 
-struct HuffmanNode{
-    char ch;
-    int freq;
+struct NoHuffman {
+    char caractere;
+    int frequencia;
 
-    HuffmanNode* left;
-    HuffmanNode* right;
-    HuffmanNode(char c, int f);
+    NoHuffman* filhoEsq;
+    NoHuffman* filhoDir;
+
+    NoHuffman(char c, int f);
 };
 
-class Huffman{
-    public:
-        static void compress(const string& inputFile, const string& outputFile);
-        static void decompress(const string& inputFile, const string& outputFile);
-
+class Huffman {
+public:
+    static void comprimir(const std::string& arquivoEntrada, const std::string& arquivoSaida);
+    static void descomprimir(const std::string& arquivoEntrada, const std::string& arquivoSaida);
 };
 
 #endif
