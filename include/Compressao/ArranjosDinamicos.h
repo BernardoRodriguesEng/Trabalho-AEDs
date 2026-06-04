@@ -3,7 +3,7 @@
 
 #include <string>
 
-// Array dinâmico manual simples para inteiros
+// Array dinâmico simples para inteiros
 struct ArrayDinamicoInt {
     int* dados;
     int capacidade;
@@ -14,7 +14,7 @@ struct ArrayDinamicoInt {
     void adicionar(int valor);
 };
 
-// Array dinâmico manual simples para strings
+// Array dinâmico simples para strings
 struct ArrayDinamicoString {
     std::string* dados;
     int capacidade;
