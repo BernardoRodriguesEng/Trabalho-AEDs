@@ -136,6 +136,6 @@ bool CSVConverter::convertToBinary(const string& binFilename) {
 
     binFile.close();
     indexFile.close();
-    cout << "Convertidos " << count << " registros com sucesso!" << endl;
+    cout << "Convertidos " << count << " registros!" << endl;
     return true;
 }

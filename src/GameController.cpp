@@ -6,8 +6,18 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <fstream>
+#include "../include/Compressao/LZW.h"
+#include "../include/Compressao/Huffman.h"
 
 using namespace std;
+
+// Auxiliar para obter tamanho do arquivo
+long getFileSizeBytes(const string& filename) {
+    ifstream file(filename, ios::binary | ios::ate);
+    if (!file) return -1;
+    return file.tellg();
+}
 
 // Auxiliares para JSON
 string escapeJsonString(const string& input) {
@@ -479,6 +489,63 @@ void GameController::run() {
             res.status = 404;
             res.set_content("{\"error\":\"Usuário não encontrado\"}", "application/json");
         }
+    });
+
+    // --- COMPRESSÃO E DESCOMPRESSÃO ---
+    svr.Post("/api/compress", [this](const httplib::Request& req, httplib::Response& res) {
+        string body = req.body;
+        string type = extractJsonField(body, "type");
+        
+        string originalFile = binFilename;
+        string compFile = "steam_" + type + ".bin";
+        
+        if (type == "lzw") {
+            LZW::comprimir(originalFile, compFile);
+        } else if (type == "huffman") {
+            Huffman::comprimir(originalFile, compFile);
+        } else {
+            res.status = 400;
+            res.set_content("{\"error\":\"Invalid type\"}", "application/json");
+            return;
+        }
+        
+        long origSize = getFileSizeBytes(originalFile);
+        long compSize = getFileSizeBytes(compFile);
+        float taxa = (1.0f - ((float)compSize / origSize)) * 100;
+        
+        string json = "{";
+        json += "\"originalSize\":" + to_string(origSize) + ",";
+        json += "\"compressedSize\":" + to_string(compSize) + ",";
+        json += "\"taxa\":" + to_string(taxa);
+        json += "}";
+        
+        res.set_content(json, "application/json");
+    });
+
+    svr.Post("/api/decompress", [this](const httplib::Request& req, httplib::Response& res) {
+        string body = req.body;
+        string type = extractJsonField(body, "type");
+        
+        string compFile = "steam_" + type + ".bin";
+        string restFile = "steam_" + type + "_restored.bin";
+        
+        if (type == "lzw") {
+            LZW::descomprimir(compFile, restFile);
+        } else if (type == "huffman") {
+            Huffman::descomprimir(compFile, restFile);
+        } else {
+            res.status = 400;
+            res.set_content("{\"error\":\"Invalid type\"}", "application/json");
+            return;
+        }
+        
+        long restSize = getFileSizeBytes(restFile);
+        
+        string json = "{";
+        json += "\"restoredSize\":" + to_string(restSize);
+        json += "}";
+        
+        res.set_content(json, "application/json");
     });
 
     // Endpoint de Shutdown (Trata tanto GET quanto POST para compatibilidade)

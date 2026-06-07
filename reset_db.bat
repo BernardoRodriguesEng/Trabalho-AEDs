@@ -14,6 +14,6 @@ if exist library.bin del library.bin
 if exist temp rmdir /s /q temp
 
 echo.
-echo Banco de dados resetado com sucesso!
+echo Banco de dados resetado!
 echo Na proxima vez que voce rodar a aplicacao, ela re-importara os dados do steam.csv.
 pause

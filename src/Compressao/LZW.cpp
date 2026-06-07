@@ -65,7 +65,7 @@ void LZW::comprimir(const string& arquivoEntrada, const string& arquivoSaida) {
     arqSaida.fechar();
     delete dicionario;
 
-    cout << "Compactacao LZW concluida com sucesso!\n";
+    cout << "Compactacao LZW concluida!\n";
 }
 
 void LZW::descomprimir(const string& arquivoEntrada, const string& arquivoSaida) {

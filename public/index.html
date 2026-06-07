@@ -16,6 +16,7 @@
             <li onclick="showSection('add')">Adicionar</li>
             <li onclick="showSection('manage')">Gerenciar</li>
             <li onclick="showSection('users')">Usuários</li>
+            <li onclick="showSection('compression')">Compressão</li>
         </ul>
         <div class="current-user-info glass-panel">
             <small>Logado como:</small>
@@ -285,6 +286,44 @@
                     <input type="text" id="del-name" placeholder="Nome exato do jogo...">
                 </div>
                 <button class="btn-danger" onclick="deleteGame()">Deletar Jogo</button>
+            </div>
+        </section>
+
+        <!-- Seção de Compressão -->
+        <section id="compression-section">
+            <header>
+                <h2>Compressão de Dados</h2>
+                <p>Comprima e descomprima a base de dados em tempo real.</p>
+            </header>
+
+            <div class="row">
+                <div class="col glass-panel">
+                    <h3>Compressão LZW</h3>
+                    <button class="btn-primary full-width" onclick="compressDB('lzw')">Comprimir (LZW)</button>
+                    <button class="btn-secondary full-width mt-2" onclick="decompressDB('lzw')">Descomprimir (LZW)</button>
+                    <div id="lzw-stats" class="mt-4 stats hidden">
+                        <p><strong>Original:</strong> <span id="lzw-orig-size">0</span> bytes</p>
+                        <p><strong>Comprimido:</strong> <span id="lzw-comp-size">0</span> bytes</p>
+                        <p><strong>Taxa de compressão:</strong> <span id="lzw-taxa">0</span>%</p>
+                    </div>
+                    <div id="lzw-rest-stats" class="mt-2 stats hidden">
+                        <p><strong>Restaurado:</strong> <span id="lzw-rest-size">0</span> bytes</p>
+                    </div>
+                </div>
+
+                <div class="col glass-panel">
+                    <h3>Compressão Huffman</h3>
+                    <button class="btn-primary full-width" onclick="compressDB('huffman')">Comprimir (Huffman)</button>
+                    <button class="btn-secondary full-width mt-2" onclick="decompressDB('huffman')">Descomprimir (Huffman)</button>
+                    <div id="huffman-stats" class="mt-4 stats hidden">
+                        <p><strong>Original:</strong> <span id="huffman-orig-size">0</span> bytes</p>
+                        <p><strong>Comprimido:</strong> <span id="huffman-comp-size">0</span> bytes</p>
+                        <p><strong>Taxa de compressão:</strong> <span id="huffman-taxa">0</span>%</p>
+                    </div>
+                    <div id="huffman-rest-stats" class="mt-2 stats hidden">
+                        <p><strong>Restaurado:</strong> <span id="huffman-rest-size">0</span> bytes</p>
+                    </div>
+                </div>
             </div>
         </section>
 

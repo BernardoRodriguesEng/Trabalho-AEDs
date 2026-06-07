@@ -143,7 +143,7 @@ void Huffman::comprimir(const string& arquivoEntrada, const string& arquivoSaida
     arqSaida.fechar();
     deletarArvore(raiz);
 
-    cout << "Compactacao Huffman concluida com sucesso!\n";
+    cout << "Compactacao Huffman concluida!\n";
 }
 
 void Huffman::descomprimir(const string& arquivoEntrada, const string& arquivoSaida) {

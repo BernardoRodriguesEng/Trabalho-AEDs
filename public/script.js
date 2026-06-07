@@ -9,6 +9,7 @@ function showSection(sectionId) {
     event.currentTarget.classList.add('active');
 }
 
+let toastTimeout;
 function showToast(message, isError = false) {
     const toast = document.getElementById('toast');
     toast.textContent = message;
@@ -16,9 +17,10 @@ function showToast(message, isError = false) {
     toast.classList.remove('hidden');
     toast.classList.add('show');
     
-    setTimeout(() => {
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
         toast.classList.remove('show');
-    }, 3000);
+    }, 2000);
 }
 
 async function searchGame() {
@@ -299,7 +301,7 @@ async function postReview() {
         
         if(!res.ok) throw new Error("Falha ao enviar avaliação");
         
-        showToast("Avaliação enviada com sucesso!");
+        showToast("Avaliação enviada!");
         document.getElementById('rev-user').value = '';
         document.getElementById('rev-nota').value = '';
         document.getElementById('rev-comment').value = '';
@@ -344,7 +346,7 @@ async function createUser() {
         });
         if(!res.ok) throw new Error("Erro ao criar usuário");
         
-        showToast("Usuário criado com sucesso!");
+        showToast("Usuário criado!");
         document.getElementById('new-user-name').value = '';
         document.getElementById('new-user-email').value = '';
         loadUsers();
@@ -431,7 +433,7 @@ async function deleteUser() {
     try {
         const res = await fetch(`/api/user/delete?id=${userId}`, { method: 'DELETE' });
         if(!res.ok) throw new Error("Erro ao deletar usuário");
-        showToast("Usuário deletado com sucesso!");
+        showToast("Usuário deletado!");
         document.getElementById('active-user-id').value = '0';
         document.getElementById('active-user-name').textContent = 'Visitante';
         loadUsers();
@@ -476,6 +478,50 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+
+// --- COMPRESSÃO ---
+
+async function compressDB(type) {
+    showToast(`Iniciando compressão ${type.toUpperCase()}... aguarde.`);
+    try {
+        const res = await fetch('/api/compress', {
+            method: 'POST',
+            body: JSON.stringify({ type })
+        });
+        if(!res.ok) throw new Error(`Erro na compressão ${type}`);
+        
+        const data = await res.json();
+        
+        document.getElementById(`${type}-orig-size`).textContent = data.originalSize;
+        document.getElementById(`${type}-comp-size`).textContent = data.compressedSize;
+        document.getElementById(`${type}-taxa`).textContent = data.taxa.toFixed(2);
+        
+        document.getElementById(`${type}-stats`).classList.remove('hidden');
+        showToast(`Compressão ${type.toUpperCase()} concluída.`);
+    } catch(e) {
+        showToast(e.message, true);
+    }
+}
+
+async function decompressDB(type) {
+    showToast(`Iniciando descompressão ${type.toUpperCase()}... aguarde.`);
+    try {
+        const res = await fetch('/api/decompress', {
+            method: 'POST',
+            body: JSON.stringify({ type })
+        });
+        if(!res.ok) throw new Error(`Erro na descompressão ${type}`);
+        
+        const data = await res.json();
+        
+        document.getElementById(`${type}-rest-size`).textContent = data.restoredSize;
+        
+        document.getElementById(`${type}-rest-stats`).classList.remove('hidden');
+        showToast(`Descompressão ${type.toUpperCase()} concluída.`);
+    } catch(e) {
+        showToast(e.message, true);
+    }
+}
 
 window.addEventListener('beforeunload', function () { 
     navigator.sendBeacon('/api/shutdown'); 

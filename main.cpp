@@ -23,6 +23,9 @@
 #include "src/LibraryDAO.cpp"
 #include "src/BPlusTree.cpp"
 #include "src/OrdenacaoExterna.cpp"
+#include "src/Compressao/GerenciadorArquivo.cpp"
+#include "src/Compressao/ArranjosDinamicos.cpp"
+#include "src/Compressao/TrieLZW.cpp"
 #include "src/Compressao/LZW.cpp"
 #include "src/Compressao/Huffman.cpp"
 
@@ -116,7 +119,7 @@ int main() {
         cout << "Gerando indices e ordenacao inicial..." << endl;
         OrdenacaoExterna ordenacao;
         ordenacao.ordenarPorNome(binFilename, "steam_ordenado.bin");
-        cout << "Processo concluido com sucesso!" << endl;
+        cout << "Processo concluido!" << endl;
         cout << "--------------------------------------------" << endl;
     } else {
         check.close();
