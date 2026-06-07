@@ -9,8 +9,19 @@
 #include <fstream>
 #include "../include/Compressao/LZW.h"
 #include "../include/Compressao/Huffman.h"
+#include <csignal>
 
 using namespace std;
+
+// Ponteiro global para o servidor para podermos desligar via Ctrl+C
+httplib::Server* global_svr = nullptr;
+
+void handle_sigint(int sig) {
+    if (global_svr) {
+        cout << "\nCapturado Ctrl+C! Desligando servidor de forma segura...\n";
+        global_svr->stop();
+    }
+}
 
 // Auxiliar para obter tamanho do arquivo
 long getFileSizeBytes(const string& filename) {
@@ -551,7 +562,7 @@ void GameController::run() {
     // Endpoint de Shutdown (Trata tanto GET quanto POST para compatibilidade)
     auto shutdown_handler = [&](const httplib::Request&, httplib::Response& res) {
         res.set_content("{\"message\":\"Desligando...\"}", "application/json");
-        cout << "\nRequisição de shutdown recebida. Fechando servidor...\n";
+        cout << "\nRequisicao de shutdown recebida. Fechando servidor...\n";
         svr.stop();
     };
     svr.Get("/api/shutdown", shutdown_handler);
@@ -561,8 +572,11 @@ void GameController::run() {
     cout << "\n============================================\n";
     cout << "Servidor iniciado! Abra seu navegador em:\n";
     cout << "http://localhost:" << port << "\n";
-    cout << "Pressione Ctrl+C para parar.\n";
+    cout << "Pressione Ctrl+C para parar com seguranca.\n";
     cout << "============================================\n";
+
+    global_svr = &svr;
+    signal(SIGINT, handle_sigint);
 
     svr.listen("0.0.0.0", port);
 }

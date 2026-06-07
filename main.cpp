@@ -9,7 +9,6 @@
 #include "include/OrdenacaoExterna.h"
 #include "include/Compressao/LZW.h"
 #include "include/Compressao/Huffman.h"
-
 #include "src/Game.cpp"
 #include "src/CSVConverter.cpp"
 #include "src/GameDAO.cpp"
@@ -28,6 +27,8 @@
 #include "src/Compressao/TrieLZW.cpp"
 #include "src/Compressao/LZW.cpp"
 #include "src/Compressao/Huffman.cpp"
+#include "include/Compressao/Saida.h"
+#include "src/Compressao/Saida.cpp"
 
 using namespace std;
 
@@ -66,10 +67,10 @@ void testarCompressoes() {
     cout << "Taxa de compressao: " << taxaLZW << "%\n";
 
     if(restoredLZW == originalSize){
-        cout << "Restauracao LZW OK!\n";
+        cout << "LZW OK!\n";
     }
     else{
-        cout << "Restauracao LZW DIFERENTE!\n";
+        cout << "RestauracaoLZW DIFERENTE!\n";
     }
 
     // ---------------- HUFFMAN ----------------
@@ -90,7 +91,7 @@ void testarCompressoes() {
     cout << "Taxa de compressao: " << taxaHuffman << "%\n";
 
     if(restoredHuffman == originalSize){
-        cout << "Restauracao Huffman OK!\n";
+        cout << "Huffman OK!\n";
     }
     else{
         cout << "Restauracao Huffman DIFERENTE!\n";
@@ -103,6 +104,9 @@ int main() {
     string csvFilename = "steam.csv";
     string binFilename = "steam.bin";
 
+    // Descomprime caso o programa tenha sido fechado anteriormente
+    CompressaoSaida::lidarComInicializacao(binFilename);
+
     // Verifica se os arquivos de dados existem. Se não, reconstrói o banco.
     ifstream check(binFilename);
     if (!check.is_open()) {
@@ -113,14 +117,19 @@ int main() {
         CSVConverter converter(csvFilename);
         if (!converter.convertToBinary(binFilename)) {
             cerr << "Erro critico: Nao foi possivel criar o banco de dados." << endl;
+            cout << "\nPressione ENTER para fechar a janela..." << endl;
+            cin.get();
             return 1;
         }
         
         cout << "Gerando indices e ordenacao inicial..." << endl;
         OrdenacaoExterna ordenacao;
         ordenacao.ordenarPorNome(binFilename, "steam_ordenado.bin");
-        cout << "Processo concluido!" << endl;
+        cout << "Concluido." << endl;
         cout << "--------------------------------------------" << endl;
+        cout << "\nPressione ENTER para fechar essa janela..." << endl;
+        cin.get();
+        return 0;
     } else {
         check.close();
         // Se desejar garantir que o arquivo ordenado sempre exista:
@@ -135,8 +144,13 @@ int main() {
     GameController controller(binFilename, "users.bin", "library.bin");
     
     // Inicia a aplicação
-    testarCompressoes();
     controller.run();
+
+    // Comprime ao encerrar
+    CompressaoSaida::lidarComEncerramento(binFilename);
+
+    cout << "\nPressione ENTER para fechar a janela..." << endl;
+    cin.get();
 
     return 0;
 }
