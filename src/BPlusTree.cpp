@@ -1,6 +1,8 @@
 #include "../include/BPlusTree.h"
 
 BPlusTree::BPlusTree(string filename) : filename(filename) {
+    conexao_aberta = false;
+    persistent_file = nullptr;
     raiz_offset = lerRaiz();
     if (raiz_offset == -1) {
         // Reservamos o espaco do cabecalho (raiz_offset) no inicio do arquivo
@@ -15,6 +17,12 @@ BPlusTree::BPlusTree(string filename) : filename(filename) {
 }
 
 long BPlusTree::lerRaiz() {
+    if (conexao_aberta) {
+        persistent_file->seekg(0, ios::beg);
+        long offset;
+        persistent_file->read((char*)&offset, sizeof(long));
+        return offset;
+    }
     ifstream file(filename, ios::binary);
     if (!file.is_open()) return -1;
     long offset;
@@ -24,6 +32,12 @@ long BPlusTree::lerRaiz() {
 }
 
 void BPlusTree::gravarRaiz(long offset) {
+    if (conexao_aberta) {
+        persistent_file->seekp(0, ios::beg);
+        persistent_file->write((char*)&offset, sizeof(long));
+        raiz_offset = offset;
+        return;
+    }
     fstream file(filename, ios::binary | ios::in | ios::out);
     if (!file.is_open()) {
         file.open(filename, ios::binary | ios::out);
@@ -36,6 +50,11 @@ void BPlusTree::gravarRaiz(long offset) {
 
 Nodo BPlusTree::lerNodo(long offset) {
     Nodo nodo;
+    if (conexao_aberta) {
+        persistent_file->seekg(offset, ios::beg);
+        persistent_file->read((char*)&nodo, sizeof(Nodo));
+        return nodo;
+    }
     ifstream file(filename, ios::binary);
     file.seekg(offset, ios::beg);
     file.read((char*)&nodo, sizeof(Nodo));
@@ -44,6 +63,11 @@ Nodo BPlusTree::lerNodo(long offset) {
 }
 
 void BPlusTree::gravarNodo(long offset, const Nodo& nodo) {
+    if (conexao_aberta) {
+        persistent_file->seekp(offset, ios::beg);
+        persistent_file->write((char*)&nodo, sizeof(Nodo));
+        return;
+    }
     fstream file(filename, ios::binary | ios::in | ios::out);
     file.seekp(offset, ios::beg);
     file.write((char*)&nodo, sizeof(Nodo));
@@ -53,6 +77,13 @@ void BPlusTree::gravarNodo(long offset, const Nodo& nodo) {
 long BPlusTree::criarNodo(bool folha) {
     Nodo nodo;
     nodo.folha = folha;
+    
+    if (conexao_aberta) {
+        persistent_file->seekp(0, ios::end);
+        long offset = persistent_file->tellp();
+        persistent_file->write((char*)&nodo, sizeof(Nodo));
+        return offset;
+    }
     
     fstream file(filename, ios::binary | ios::in | ios::out);
     if (!file.is_open()) {
@@ -66,6 +97,26 @@ long BPlusTree::criarNodo(bool folha) {
     file.write((char*)&nodo, sizeof(Nodo));
     file.close();
     return offset;
+}
+
+BPlusTree::~BPlusTree() {
+    fecharConexao();
+}
+
+void BPlusTree::abrirConexao() {
+    if (!conexao_aberta) {
+        persistent_file = new fstream(filename, ios::binary | ios::in | ios::out);
+        conexao_aberta = true;
+    }
+}
+
+void BPlusTree::fecharConexao() {
+    if (conexao_aberta && persistent_file) {
+        persistent_file->close();
+        delete persistent_file;
+        persistent_file = nullptr;
+        conexao_aberta = false;
+    }
 }
 
 long BPlusTree::buscar(float chave) {

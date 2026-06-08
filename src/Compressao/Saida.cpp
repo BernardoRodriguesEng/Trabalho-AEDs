@@ -40,7 +40,7 @@ namespace CompressaoSaida {
         if (arquivoExiste(arqLzw)) {
             ultimoMetodo = 0;
             cout << "\n[!] Banco de dados comprimido via LZW detectado.\n";
-            cout << "Pressione ENTER para descompactar e iniciar o servidor...";
+            cout << "Aperte ENTER para descompactar e iniciar o servidor...";
             cin.get();
             animarCarregamento("DESCOMPRESSAO LZW EM ANDAMENTO");
             LZW::descomprimir(arqLzw, arquivoOriginal);
@@ -50,7 +50,7 @@ namespace CompressaoSaida {
         else if (arquivoExiste(arqHuffman)) {
             ultimoMetodo = 1;
             cout << "\n[!] Banco de dados comprimido via Huffman detectado.\n";
-            cout << "Pressione ENTER para descompactar e iniciar o servidor...";
+            cout << "Aperte ENTER para descompactar e iniciar o servidor...";
             cin.get();
             animarCarregamento("DESCOMPRESSAO HUFFMAN EM ANDAMENTO");
             Huffman::descomprimir(arqHuffman, arquivoOriginal);

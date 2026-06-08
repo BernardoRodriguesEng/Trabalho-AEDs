@@ -9,7 +9,7 @@
 
 using namespace std;
 
-#define ORDEM 4 // Ordem da Árvore B+ (m)
+#define ORDEM 100 // Ordem da Árvore B+ (m)
 
 struct Nodo {
     bool folha;
@@ -36,6 +36,8 @@ class BPlusTree {
 private:
     string filename;
     long raiz_offset;
+    fstream* persistent_file;
+    bool conexao_aberta;
 
     long lerRaiz();
     void gravarRaiz(long offset);
@@ -51,6 +53,10 @@ private:
 
 public:
     BPlusTree(string filename);
+    ~BPlusTree();
+    
+    void abrirConexao();
+    void fecharConexao();
     
     void inserir(float chave, long data_offset);
     long buscar(float chave);

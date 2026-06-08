@@ -1,61 +1,113 @@
 # Gerenciador de Banco de Dados Steam (AEDs3)
 
-Este projeto é um sistema completo de gerenciamento de banco de dados desenvolvido para a disciplina de **Algoritmos e Estruturas de Dados III (AEDs3)**. Ele demonstra a implementação de conceitos fundamentais de armazenamento persistente, indexação e processamento de dados em larga escala utilizando C++.
+Este projeto é um sistema completo de gerenciamento de banco de dados desenvolvido para a disciplina de **Algoritmos e Estruturas de Dados III (AEDs3)**. Ele demonstra a implementação de conceitos fundamentais de armazenamento persistente, indexação estruturada, relacionamento entre entidades e processamento de dados em larga escala utilizando C++.
 
-## Visão Geral
+## 🚀 Visão Geral
 
-O sistema permite gerenciar um catálogo de jogos da Steam, realizando operações de CRUD (Criar, Ler, Atualizar e Deletar) diretamente em arquivos binários. Diferente de bancos de dados convencionais, toda a lógica de gerenciamento de arquivos, índices de Hash e ordenação externa foi desenvolvida do zero.
+O sistema permite gerenciar um catálogo de jogos da Steam, interagindo através de uma **Interface Web (HTML/JS/CSS)** que se comunica via **API REST** com o back-end em C++. Toda a lógica de gerenciamento de arquivos, índices de Hash, Árvores B+, relacionamentos e compressão foi desenvolvida do zero, sem o uso de SGBDs externos (como MySQL ou SQLite).
 
-## Requisitos do Sistema
+### ✨ Principais Funcionalidades Implementadas
+- **CRUD Completo:** Criação, leitura, atualização e exclusão (lógica com lápide) de registros de Jogos, Usuários e Reviews.
+- **Estruturas de Dados Avançadas:**
+  - **Hash Extensível:** Usado para busca rápida de registros (O(1)) por ID.
+  - **Árvore B+:** Usada para consultas em faixa de valores (ex: buscar jogos dentro de uma faixa de preço).
+- **Relacionamentos:**
+  - **1:N (Um para Muitos):** Um Jogo pode ter várias Avaliações (Reviews).
+  - **N:N (Muitos para Muitos):** Usuários possuem uma Biblioteca de Jogos (tabela associativa).
+- **Ordenação Externa:** Capacidade de ordenar arquivos gigantescos que não cabem na memória RAM.
+- **Compressão de Dados:** Algoritmos **LZW** e **Huffman** aplicados para reduzir o espaço em disco do banco de dados quando o servidor é desligado.
+
+---
+
+## ⚙️ Requisitos do Sistema
 
 Para compilar e executar este projeto corretamente, seu ambiente deve atender aos seguintes requisitos:
 
--   **Compilador**: GCC com suporte a **C++17** ou superior.
--   **Compatibilidade**: 
-    - **Linux**: O comando de build utiliza `-lpthread`.
-    - **Windows**: Linkar com `-lws2_32`.
-
-## Como Executar
-
-O projeto foi otimizado para ser "plug and play". Não é necessário rodar scripts de conversão manuais.
-
-1.  **Compilar**: 
-    - **Linux**: `g++ -std=c++17 main.cpp -o app -lpthread`
-    - **Windows**: `g++ -std=c++17 main.cpp -o app.exe -lws2_32`
-2.  **Executar**: Rode o executável gerado (`./app` ou `app.exe`).
-3.  **Inicialização Automática**: Na primeira execução, o programa detectará a ausência dos arquivos `.bin` e realizará automaticamente a conversão do CSV, a geração de índices e a ordenação externa.
-4.  **Acessar**: Abra seu navegador em `http://localhost:8080`.
-
-## Formulário Técnico
-
-### a) Qual a estrutura usada para representar os registros?
-Os registros são de **tamanho variável**. Cada registro no arquivo binário é precedido por um número inteiro que indica seu tamanho total em bytes. Os campos são serializados sequencialmente, e as strings são armazenadas com um prefixo (`unsigned short`) indicando seu comprimento.
-
-### b) Como atributos multivalorados do tipo string foram tratados?
-Atributos como categorias e gêneros foram tratados como vetores de strings (`std::vector<std::string>`). Na serialização, gravamos primeiro o número de elementos do vetor e, em seguida, cada string individualmente (comprimento + conteúdo).
-
-### c) Como foi implementada a exclusão lógica?
-Utilizamos o conceito de **lápide** (`lapide`). O primeiro byte de cada registro é um caractere que indica seu estado: um espaço (`' '`) significa que o registro está ativo, enquanto um asterisco (`'*'`) indica que ele foi excluído. O sistema ignora registros marcados com o asterisco durante buscas e listagens.
-
-### d) Além das PKs, quais outras chaves foram utilizadas nesta etapa?
-Além das Chaves Primárias (`appid` para jogos e `idReview` para avaliações), utilizamos o `idJogo` como **Chave Estrangeira (FK)** para vincular avaliações a jogos específicos. Implementamos busca por **Nome** (chave secundária) com suporte a múltiplos resultados.
-
-### e) Como a estrutura (hash) foi implementada para cada chave de pesquisa?
-Implementamos um **Hash Extensível** dinâmico. Ele utiliza um diretório de ponteiros para buckets que residem em memória e são reconstruídos a partir do disco. Quando um bucket atinge sua capacidade máxima, ele sofre um *split* (divisão), e a profundidade local/global é atualizada, garantindo acesso O(1).
-
-### f) Como foi implementado o relacionamento 1:N?
-O relacionamento entre Jogos e Avaliações foi implementado usando um índice de **Hash Extensível Secundário**. Esse índice mapeia a Chave Estrangeira (`idJogo`) para todos os offsets das avaliações correspondentes no arquivo de dados. Isso permite que, ao visualizar um jogo, o sistema recupere e exiba instantaneamente todas as suas avaliações vinculadas através da interface Web.
-
-### g) Como os índices são persistidos em disco?
-Os índices são reconstruídos em memória a partir dos arquivos de dados (`.bin`) toda vez que a aplicação é iniciada através do método `reconstruirHash()`. Toda operação de escrita (Inserção/Atualização) sincroniza os dados no disco e atualiza o objeto de Hash, garantindo que o índice reflita exatamente o estado atual dos arquivos.
-
-### h) Como está estruturado o projeto no GitHub?
-O projeto segue uma arquitetura modular clara:
-- `/include`: Cabeçalhos e definições de interfaces.
-- `/src`: Implementação da lógica de dados (DAOs), algoritmos de ordenação e controlador.
-- `/public`: Interface do usuário (Frontend Web com suporte a visualização e criação de reviews).
-- `/external`: Biblioteca header-only `httplib.h` para comunicação em rede.
-- **Raiz**: Arquivo `main.cpp` e documentação do projeto.
+- **Compilador**: GCC (MinGW no Windows) com suporte a **C++17** ou superior.
+- **Arquivos Iniciais**: O arquivo base `steam.csv` deve estar presente na pasta raiz do projeto.
 
 ---
-*Desenvolvido como projeto prático para a disciplina de AEDs III.*
+
+## 🏃 Como Compilar e Executar
+
+O projeto foi construído para facilitar a execução. Ele engloba seus módulos diretamente na `main.cpp`, então a compilação requer apenas a indicação do arquivo principal.
+
+### 1. Compilar
+
+**No Windows (PowerShell/CMD):**
+```bash
+g++ main.cpp -o app.exe -lws2_32
+```
+
+**No Linux/macOS:**
+```bash
+g++ -std=c++17 main.cpp -o app -lpthread
+```
+
+### 2. Executar
+
+**No Windows:**
+```bash
+.\app.exe
+```
+
+**No Linux/macOS:**
+```bash
+./app
+```
+
+### 3. Acessar a Interface
+Após executar o servidor, abra o seu navegador e acesse:
+👉 **[http://localhost:8080](http://localhost:8080)**
+
+---
+
+## 🏗 Estrutura do Projeto
+
+A arquitetura do repositório segue a separação de responsabilidades no padrão MVC (Model-View-Controller) Modificado:
+
+```text
+/
+├── include/                 # Declarações e cabeçalhos das classes (.h)
+│   ├── Compressao/          # Cabeçalhos referentes ao LZW e Huffman
+│   ├── Game.h, User.h...    # Modelos de dados
+│   ├── GameDAO.h...         # Interfaces de acesso físico
+│   └── GameController.h     # Orquestração das rotas HTTP REST
+├── src/                     # Implementação da lógica em C++ (.cpp)
+│   ├── Compressao/          # Lógica do LZW, Trie, Huffman
+│   ├── BPlusTree.cpp        # Lógica de indexação B+
+│   ├── Hash.cpp             # Lógica do Hash Extensível
+│   └── ...                  # DAOs e Models
+├── public/                  # Interface do Usuário (Frontend Web)
+│   ├── index.html           # Tela principal (Página Única)
+│   ├── style.css            # Estilização
+│   └── script.js            # Lógica de integração via Fetch API
+├── external/                # Bibliotecas externas de terceiros
+│   └── httplib.h            # Biblioteca header-only para o Servidor HTTP
+├── tests/                   # Motor de testes unitários da aplicação
+└── main.cpp                 # Ponto de entrada (Entrypoint)
+```
+
+---
+
+## 📚 Documentação das Fases do Projeto
+
+Este projeto evoluiu em quatro fases avaliativas ao longo do semestre:
+
+- **Fase 1 (Estrutura Base):** Construção da leitura de CSV, conversão para `.bin`, implementação de operações CRUD e indexação por ID usando Hash Extensível.
+- **Fase 2 (Busca e Relacionamento 1:N):** Adição de buscas secundárias, Árvore B+ e a entidade de "Avaliações" (Relacionamento Jogo 1 : N Avaliações). Integrado à Interface Web.
+- **Fase 3 (Relacionamento N:N e Deleção em Cascata):** Inclusão da entidade "Usuário" e a tabela "Biblioteca" relacionando N Usuários com N Jogos. Implementada a validação e exclusão em cascata (remover um jogo deleta suas reviews e bibliotecas).
+- **Fase 4 (Compressão):** Aplicação das técnicas de Lempel-Ziv-Welch (LZW) e Huffman. Ao fechar o servidor de forma limpa, o sistema comprime os arquivos binários. Ao reabrir, o banco é perfeitamente restaurado de forma transparente.
+
+---
+
+## 🛠 Motor de Testes
+
+O projeto contém uma suíte de testes unitários própria para validar se alterações estruturais não quebram o código.
+Para rodar os testes:
+
+1. Execute o arquivo de lote `compilar_testes.bat` para compilar tudo de uma vez.
+2. Em seguida, execute o `./run_tests.exe`.
+
+---
+*Desenvolvido pelo Grupo 04 para a disciplina de AEDs III - PUC Minas.*

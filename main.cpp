@@ -126,8 +126,15 @@ int main() {
         OrdenacaoExterna ordenacao;
         ordenacao.ordenarPorNome(binFilename, "steam_ordenado.bin");
         cout << "Concluido." << endl;
+        
+        cout << "Construindo indices B+ Tree e Hash (Aguarde...)" << endl;
+        {
+            GameDAO dao(binFilename);
+        }
+        cout << "Todos os indices foram gerados com sucesso." << endl;
+        
         cout << "--------------------------------------------" << endl;
-        cout << "\nPressione ENTER para fechar essa janela..." << endl;
+        cout << "\nAperte ENTER para fechar essa janela..." << endl;
         cin.get();
         return 0;
     } else {
@@ -149,7 +156,7 @@ int main() {
     // Comprime ao encerrar
     CompressaoSaida::lidarComEncerramento(binFilename);
 
-    cout << "\nPressione ENTER para fechar a janela..." << endl;
+    cout << "\nAperte ENTER para fechar essa janela..." << endl;
     cin.get();
 
     return 0;

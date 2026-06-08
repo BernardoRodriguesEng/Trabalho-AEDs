@@ -28,7 +28,14 @@ GameDAO::GameDAO(const string& fileName)
     indexFileName += "_index.bin";
     
     loadLastID();
+    
+    if (!indexExists) {
+        cout << "[Info] Indexando banco de dados (B+ Tree e Hash) na memoria e em disco..." << endl;
+    }
     reconstruirHash(!indexExists);
+    if (!indexExists) {
+        cout << "[Info] Indexacao concluida." << endl;
+    }
 }
 
 GameDAO::~GameDAO() {
@@ -61,6 +68,11 @@ void GameDAO::reconstruirHash(bool rebuildBPlusTree) {
 
     file.seekg(sizeof(int), ios::beg);
 
+    if (rebuildBPlusTree && priceIndex) {
+        priceIndex->abrirConexao();
+    }
+
+    int count = 0;
     while (file.peek() != EOF) {
         long pos = file.tellg();
 
@@ -72,7 +84,16 @@ void GameDAO::reconstruirHash(bool rebuildBPlusTree) {
             if (rebuildBPlusTree) {
                 priceIndex->inserir(g.price, pos);
             }
+            count++;
+            
+            if (rebuildBPlusTree && count % 5000 == 0) {
+                cout << "  -> " << count << " registros indexados..." << endl;
+            }
         }
+    }
+
+    if (rebuildBPlusTree && priceIndex) {
+        priceIndex->fecharConexao();
     }
 
     file.close();
