@@ -1,25 +1,25 @@
 # Gerenciador de Banco de Dados Steam (AEDs3)
 
-Este projeto é um sistema completo de gerenciamento de banco de dados desenvolvido para a disciplina de **Algoritmos e Estruturas de Dados III (AEDs3)**. Ele demonstra a implementação de conceitos fundamentais de armazenamento persistente, indexação estruturada, relacionamento entre entidades e processamento de dados em larga escala utilizando C++.
+Este projeto é um sistema de gerenciamento de banco de dados desenvolvido para a disciplina de **Algoritmos e Estruturas de Dados III (AEDs3)**. Ele demonstra a implementação de conceitos fundamentais de armazenamento persistente, indexação estruturada, relacionamento entre entidades e processamento de dados em larga escala utilizando C++.
 
-## 🚀 Visão Geral
+## Visão Geral
 
-O sistema permite gerenciar um catálogo de jogos da Steam, interagindo através de uma **Interface Web (HTML/JS/CSS)** que se comunica via **API REST** com o back-end em C++. Toda a lógica de gerenciamento de arquivos, índices de Hash, Árvores B+, relacionamentos e compressão foi desenvolvida do zero, sem o uso de SGBDs externos (como MySQL ou SQLite).
+O sistema permite gerenciar um catálogo de jogos da Steam, interagindo através de uma **Interface Web (HTML/JS/CSS)** que se comunica via **API REST** com o back-end em C++. Toda a lógica de gerenciamento de arquivos, índices de Hash, Árvores B+, relacionamentos e compressão foi desenvolvida sem o uso de SGBDs externos (como MySQL ou SQLite).
 
 ### ✨ Principais Funcionalidades Implementadas
 - **CRUD Completo:** Criação, leitura, atualização e exclusão (lógica com lápide) de registros de Jogos, Usuários e Reviews.
-- **Estruturas de Dados Avançadas:**
+- **Estruturas de Dados:**
   - **Hash Extensível:** Usado para busca rápida de registros (O(1)) por ID.
   - **Árvore B+:** Usada para consultas em faixa de valores (ex: buscar jogos dentro de uma faixa de preço).
 - **Relacionamentos:**
   - **1:N (Um para Muitos):** Um Jogo pode ter várias Avaliações (Reviews).
   - **N:N (Muitos para Muitos):** Usuários possuem uma Biblioteca de Jogos (tabela associativa).
-- **Ordenação Externa:** Capacidade de ordenar arquivos gigantescos que não cabem na memória RAM.
+- **Ordenação Externa:** Capacidade de ordenar arquivos que não cabem na memória RAM.
 - **Compressão de Dados:** Algoritmos **LZW** e **Huffman** aplicados para reduzir o espaço em disco do banco de dados quando o servidor é desligado.
 
 ---
 
-## ⚙️ Requisitos do Sistema
+## Requisitos do Sistema
 
 Para compilar e executar este projeto corretamente, seu ambiente deve atender aos seguintes requisitos:
 
@@ -28,7 +28,7 @@ Para compilar e executar este projeto corretamente, seu ambiente deve atender ao
 
 ---
 
-## 🏃 Como Compilar e Executar
+## Como Compilar e Executar
 
 O projeto foi construído para facilitar a execução. Ele engloba seus módulos diretamente na `main.cpp`, então a compilação requer apenas a indicação do arquivo principal.
 
@@ -58,7 +58,7 @@ g++ -std=c++17 main.cpp -o app -lpthread
 
 ### 3. Acessar a Interface
 Após executar o servidor, abra o seu navegador e acesse:
-👉 **[http://localhost:8080](http://localhost:8080)**
+**[http://localhost:8080](http://localhost:8080)**
 
 ---
 
@@ -97,11 +97,11 @@ Este projeto evoluiu em quatro fases avaliativas ao longo do semestre:
 - **Fase 1 (Estrutura Base):** Construção da leitura de CSV, conversão para `.bin`, implementação de operações CRUD e indexação por ID usando Hash Extensível.
 - **Fase 2 (Busca e Relacionamento 1:N):** Adição de buscas secundárias, Árvore B+ e a entidade de "Avaliações" (Relacionamento Jogo 1 : N Avaliações). Integrado à Interface Web.
 - **Fase 3 (Relacionamento N:N e Deleção em Cascata):** Inclusão da entidade "Usuário" e a tabela "Biblioteca" relacionando N Usuários com N Jogos. Implementada a validação e exclusão em cascata (remover um jogo deleta suas reviews e bibliotecas).
-- **Fase 4 (Compressão):** Aplicação das técnicas de Lempel-Ziv-Welch (LZW) e Huffman. Ao fechar o servidor de forma limpa, o sistema comprime os arquivos binários. Ao reabrir, o banco é perfeitamente restaurado de forma transparente.
+- **Fase 4 (Compressão):** Aplicação das técnicas de Lempel-Ziv-Welch (LZW) e Huffman. Ao fechar o servidor de forma limpa, o sistema comprime os arquivos binários. Ao reabrir, o banco é restaurado.
 
 ---
 
-## 🛠 Motor de Testes
+## Motor de Testes
 
 O projeto contém uma suíte de testes unitários própria para validar se alterações estruturais não quebram o código.
 Para rodar os testes:
