@@ -9,3 +9,7 @@
 
 # Ignorar o plano de implementação (se aplicável ao ambiente local)
 implementation_plan.md
+
+# OTP
+chave_xor.key
+steam_criptografado.bin

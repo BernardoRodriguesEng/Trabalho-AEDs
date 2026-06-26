@@ -18,6 +18,9 @@ Para realizar operações de Leitura/Escrita no disco utilizamos o `GerenciadorA
 * **`ArrayDinamicoInt` e `ArrayDinamicoString`**: Gerenciadores de listas contíguas que redimensionam a si mesmos automaticamente usando limites de capacidade (se encher, ele dobra o tamanho, aloca nova memória, copia os valores antigos e descarta a memória velha).
 * **`NoTrieLZW`**: Estrutura em formato de Árvore de Prefixos (Trie) usada na Compressão LZW para permitir buscas de caminhos de strings no dicionário em complexidade $O(1)$.
 
+### 4. Integração de Sistema (`Saida.cpp`)
+* Classe auxiliar que lida com o clico de vida do banco de dados na aplicação. Ela intercepta a inicialização para realizar a descompressão (caso o banco esteja salvo em formato comprimido) e intercepta o encerramento do programa para recomprimir o arquivo principal antes de fechar.
+
 ---
 
 ## Como Utilizar no Código

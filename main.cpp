@@ -29,6 +29,7 @@
 #include "src/Compressao/Huffman.cpp"
 #include "include/Compressao/Saida.h"
 #include "src/Compressao/Saida.cpp"
+#include "src/Criptografia/XOR.cpp"
 
 using namespace std;
 

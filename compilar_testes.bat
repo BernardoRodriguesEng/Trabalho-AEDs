@@ -10,6 +10,7 @@ tests/TestesArvoreBMais.cpp ^
 tests/TestesOrdenacao.cpp ^
 tests/TestesGameDAO.cpp ^
 tests/TestesServidor.cpp ^
+tests/TestesCriptografia.cpp ^
 src/Game.cpp ^
 src/CSVConverter.cpp ^
 src/GameDAO.cpp ^
@@ -29,6 +30,7 @@ src/Compressao/TrieLZW.cpp ^
 src/Compressao/LZW.cpp ^
 src/Compressao/Huffman.cpp ^
 src/Compressao/Saida.cpp ^
+src/Criptografia/XOR.cpp ^
 -o run_tests.exe -lws2_32
 
 if %errorlevel% neq 0 (

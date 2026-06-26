@@ -17,6 +17,7 @@
             <li onclick="showSection('manage')">Gerenciar</li>
             <li onclick="showSection('users')">Usuários</li>
             <li onclick="showSection('compression')">Compressão</li>
+            <li onclick="showSection('crypto')">Criptografia</li>
         </ul>
         <div class="current-user-info glass-panel">
             <small>Logado como:</small>
@@ -324,6 +325,20 @@
                         <p><strong>Restaurado:</strong> <span id="huffman-rest-size">0</span> bytes</p>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Seção de Criptografia -->
+        <section id="crypto-section">
+            <header>
+                <h2>Criptografia OTP (XOR)</h2>
+                <p>Proteja seu banco de dados com uma chave One-Time Pad.</p>
+            </header>
+            <div class="glass-panel">
+                <h3>Gerenciar Criptografia</h3>
+                <p class="form-hint">A criptografia vai gerar a chave <code>chave_xor.key</code> e o arquivo <code>steam_criptografado.bin</code>.</p>
+                <button class="btn-primary full-width mt-2" onclick="encryptDB()">Criptografar Banco</button>
+                <button class="btn-secondary full-width mt-2" onclick="decryptDB()">Descriptografar Banco (Restaurar)</button>
             </div>
         </section>
 

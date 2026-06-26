@@ -523,6 +523,31 @@ async function decompressDB(type) {
     }
 }
 
+// --- CRIPTOGRAFIA ---
+async function encryptDB() {
+    showToast(`Iniciando Criptografia OTP... aguarde.`);
+    try {
+        const res = await fetch('/api/encrypt', { method: 'POST' });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error || "Erro na criptografia");
+        showToast(data.message);
+    } catch(e) {
+        showToast(e.message, true);
+    }
+}
+
+async function decryptDB() {
+    showToast(`Iniciando Descriptografia OTP... aguarde.`);
+    try {
+        const res = await fetch('/api/decrypt', { method: 'POST' });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error || "Erro na descriptografia");
+        showToast(data.message);
+    } catch(e) {
+        showToast(e.message, true);
+    }
+}
+
 window.addEventListener('beforeunload', function () { 
     navigator.sendBeacon('/api/shutdown'); 
 });

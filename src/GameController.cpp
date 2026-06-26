@@ -9,6 +9,7 @@
 #include <fstream>
 #include "../include/Compressao/LZW.h"
 #include "../include/Compressao/Huffman.h"
+#include "../include/Criptografia/XOR.h"
 #include <csignal>
 
 using namespace std;
@@ -557,6 +558,33 @@ void GameController::run() {
         json += "}";
         
         res.set_content(json, "application/json");
+    });
+
+    // --- CRIPTOGRAFIA ---
+    svr.Post("/api/encrypt", [this](const httplib::Request& req, httplib::Response& res) {
+        string originalFile = binFilename;
+        string encFile = "steam_criptografado.bin";
+        string keyFile = "chave_xor.key";
+        
+        if (XOR::criptografar(originalFile, encFile, keyFile)) {
+            res.set_content("{\"message\":\"Criptografia realizada com sucesso.\"}", "application/json");
+        } else {
+            res.status = 500;
+            res.set_content("{\"error\":\"Erro na criptografia\"}", "application/json");
+        }
+    });
+
+    svr.Post("/api/decrypt", [this](const httplib::Request& req, httplib::Response& res) {
+        string encFile = "steam_criptografado.bin";
+        string restFile = "steam_restaurado.bin";
+        string keyFile = "chave_xor.key";
+        
+        if (XOR::descriptografar(encFile, restFile, keyFile)) {
+            res.set_content("{\"message\":\"Descriptografia realizada com sucesso.\"}", "application/json");
+        } else {
+            res.status = 500;
+            res.set_content("{\"error\":\"Erro na descriptografia. Verifique se os arquivos de chave e banco criptografado existem.\"}", "application/json");
+        }
     });
 
     // Endpoint de Shutdown (Trata tanto GET quanto POST para compatibilidade)
