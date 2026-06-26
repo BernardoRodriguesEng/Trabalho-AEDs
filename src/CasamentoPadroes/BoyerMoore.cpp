@@ -35,8 +35,6 @@ int BoyerMoore::buscar(const string& texto, const string& padrao) {
 
         if (j < 0) {
             return s; // Encontrou o padrão
-            // Se quisesse buscar todas as ocorrências:
-            // s += (s + m < n) ? m - badChar[texto[s + m]] : 1;
         } else {
             // Desloca o padrão para alinhar com o bad character no texto
             s += max(1, j - badChar[(int)(unsigned char)texto[s + j]]);
