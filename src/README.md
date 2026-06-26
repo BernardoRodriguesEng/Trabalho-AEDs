@@ -15,7 +15,8 @@ Este diretório contém as implementações em C++ (`.cpp`) de toda a lógica do
 ### 3. Controlador e Servidor
 - **GameController.cpp**: Implementa os endpoints da API REST utilizando a biblioteca `httplib`. Ele traduz requisições JSON em operações no banco de dados e vice-versa.
 
-### 4. Compressão e Segurança
+### 4. Busca, Compressão e Segurança
+- **CasamentoPadroes/**: Contém algoritmos de busca avançada em strings (KMP e Boyer-Moore). Eles são utilizados pelo sistema para realizar buscas de texto de alto desempenho varrendo os registros da Steam.
 - **Compressao/**: Pasta que abriga algoritmos que reduzem o tamanho do arquivo binário (LZW, Huffman), permitindo portabilidade e economia de disco sem perda de informações.
 - **Criptografia/**: Pasta que contém os módulos de segurança. O módulo `XOR.cpp` implementa o conceito de One-Time Pad, criando uma cifra dinâmica em tempo real para proteger e ocultar o banco de dados.
 

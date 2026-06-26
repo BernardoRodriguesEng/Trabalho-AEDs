@@ -59,7 +59,7 @@ public:
         if (testesFalharam > 0) {
             std::cout << COR_VERMELHA << "FALHARAM: " << testesFalharam << COR_RESET << "\n";
         } else {
-            std::cout << COR_VERDE << "TODOS OS TESTES PASSARAM COM SUCESSO!" << COR_RESET << "\n";
+            std::cout << COR_VERDE << "TODOS OS TESTES PASSARAM." << COR_RESET << "\n";
         }
         std::cout << "========================================\n";
     }

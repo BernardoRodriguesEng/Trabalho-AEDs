@@ -11,6 +11,7 @@ Este diretório contém todos os arquivos de cabeçalho (**headers**) do projeto
 - **Hash.h / HashExtensivel.h**: Definições das estruturas de dados para o índice de Hash Extensível.
 - **OrdenacaoExterna.h**: Interface para o algoritmo de intercalação balanceada de vários caminhos.
 - **CSVConverter.h**: Define a lógica para importar dados brutos de arquivos CSV para o formato binário otimizado.
+- **CasamentoPadroes/**: Subpasta contendo as declarações de `KMP.h` e `BoyerMoore.h` para algoritmos de buscas em strings de alto desempenho.
 
 > [!NOTE]
 > Todos os arquivos aqui utilizam *include guards* (`#ifndef`) para evitar múltiplas inclusões durante a compilação.

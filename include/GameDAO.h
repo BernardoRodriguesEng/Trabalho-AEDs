@@ -28,6 +28,8 @@ public:
     void create(Game& g);
     bool searchByName(const std::string& targetName, Game& found, long& pos);
     std::vector<Game> searchAllByName(const std::string& targetName);
+    std::vector<Game> searchAllByPatternKMP(const std::string& pattern);
+    std::vector<Game> searchAllByPatternBM(const std::string& pattern);
     bool searchById(int appid, Game& found, long& pos);
     bool update(const std::string& targetName, const Game& updatedGame);
     bool remove(const std::string& targetName);

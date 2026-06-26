@@ -30,6 +30,8 @@
 #include "include/Compressao/Saida.h"
 #include "src/Compressao/Saida.cpp"
 #include "src/Criptografia/XOR.cpp"
+#include "src/CasamentoPadroes/KMP.cpp"
+#include "src/CasamentoPadroes/BoyerMoore.cpp"
 
 using namespace std;
 
@@ -132,7 +134,7 @@ int main() {
         {
             GameDAO dao(binFilename);
         }
-        cout << "Todos os indices foram gerados com sucesso." << endl;
+        cout << "Todos os indices foram gerados." << endl;
         
         cout << "--------------------------------------------" << endl;
         cout << "\nAperte ENTER para fechar essa janela..." << endl;

@@ -10,6 +10,7 @@ void rodarTestesOrdenacao();
 void rodarTestesGameDAO();
 void rodarTestesServidor();
 void rodarTestesCriptografia();
+void rodarTestesCasamentoPadroes();
 
 int main() {
     std::cout << "\n========================================\n";
@@ -24,6 +25,7 @@ int main() {
     rodarTestesGameDAO();
     rodarTestesServidor();
     rodarTestesCriptografia();
+    rodarTestesCasamentoPadroes();
 
     MotorDeTestes::getInstancia().finalizarTestes();
 

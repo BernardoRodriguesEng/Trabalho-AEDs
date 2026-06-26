@@ -31,6 +31,9 @@ src/Compressao/LZW.cpp ^
 src/Compressao/Huffman.cpp ^
 src/Compressao/Saida.cpp ^
 src/Criptografia/XOR.cpp ^
+src/CasamentoPadroes/KMP.cpp ^
+src/CasamentoPadroes/BoyerMoore.cpp ^
+tests/TestesCasamentoPadroes.cpp ^
 -o run_tests.exe -lws2_32
 
 if %errorlevel% neq 0 (

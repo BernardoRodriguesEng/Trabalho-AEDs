@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "../include/BPlusTree.h"
+#include "../include/CasamentoPadroes/KMP.h"
+#include "../include/CasamentoPadroes/BoyerMoore.h"
 
 using namespace std;
 
@@ -260,6 +262,110 @@ vector<Game> GameDAO::searchAllByName(const string& targetName) {
         delete[] nameBuf;
 
         if (lapide == ' ' && toLowerCase(currentName).find(lowerTargetName) != string::npos) {
+            inFile.seekg(currentPos);
+            Game g;
+            g.readFromStream(inFile);
+            results.push_back(g);
+        } else {
+            inFile.seekg(sizeof(Date), ios::cur);
+            inFile.seekg(sizeof(bool), ios::cur);
+            skipString(inFile);
+            skipString(inFile);
+            skipString(inFile);
+            inFile.seekg(sizeof(int), ios::cur);
+            skipVector(inFile);
+            skipVector(inFile);
+            skipVector(inFile);
+            inFile.seekg(sizeof(int) * 5, ios::cur);
+            skipString(inFile);
+            inFile.seekg(sizeof(float), ios::cur);
+        }
+    }
+
+    inFile.close();
+    return results;
+}
+
+vector<Game> GameDAO::searchAllByPatternKMP(const string& targetName) {
+    vector<Game> results;
+    ifstream inFile(fileName, ios::binary);
+    if (!inFile) return results;
+
+    inFile.seekg(sizeof(int), ios::beg);
+    string lowerTargetName = toLowerCase(targetName);
+
+    while (inFile.peek() != EOF) {
+        long currentPos = inFile.tellg();
+
+        char lapide;
+        if (!inFile.read(&lapide, 1)) break;
+
+        int appid;
+        inFile.read(reinterpret_cast<char*>(&appid), sizeof(int));
+
+        unsigned short nameLen;
+        inFile.read(reinterpret_cast<char*>(&nameLen), sizeof(unsigned short));
+
+        char* nameBuf = new char[nameLen + 1];
+        inFile.read(nameBuf, nameLen);
+        nameBuf[nameLen] = '\0';
+
+        string currentName(nameBuf);
+        delete[] nameBuf;
+
+        if (lapide == ' ' && KMP::buscar(toLowerCase(currentName), lowerTargetName) != -1) {
+            inFile.seekg(currentPos);
+            Game g;
+            g.readFromStream(inFile);
+            results.push_back(g);
+        } else {
+            inFile.seekg(sizeof(Date), ios::cur);
+            inFile.seekg(sizeof(bool), ios::cur);
+            skipString(inFile);
+            skipString(inFile);
+            skipString(inFile);
+            inFile.seekg(sizeof(int), ios::cur);
+            skipVector(inFile);
+            skipVector(inFile);
+            skipVector(inFile);
+            inFile.seekg(sizeof(int) * 5, ios::cur);
+            skipString(inFile);
+            inFile.seekg(sizeof(float), ios::cur);
+        }
+    }
+
+    inFile.close();
+    return results;
+}
+
+vector<Game> GameDAO::searchAllByPatternBM(const string& targetName) {
+    vector<Game> results;
+    ifstream inFile(fileName, ios::binary);
+    if (!inFile) return results;
+
+    inFile.seekg(sizeof(int), ios::beg);
+    string lowerTargetName = toLowerCase(targetName);
+
+    while (inFile.peek() != EOF) {
+        long currentPos = inFile.tellg();
+
+        char lapide;
+        if (!inFile.read(&lapide, 1)) break;
+
+        int appid;
+        inFile.read(reinterpret_cast<char*>(&appid), sizeof(int));
+
+        unsigned short nameLen;
+        inFile.read(reinterpret_cast<char*>(&nameLen), sizeof(unsigned short));
+
+        char* nameBuf = new char[nameLen + 1];
+        inFile.read(nameBuf, nameLen);
+        nameBuf[nameLen] = '\0';
+
+        string currentName(nameBuf);
+        delete[] nameBuf;
+
+        if (lapide == ' ' && BoyerMoore::buscar(toLowerCase(currentName), lowerTargetName) != -1) {
             inFile.seekg(currentPos);
             Game g;
             g.readFromStream(inFile);

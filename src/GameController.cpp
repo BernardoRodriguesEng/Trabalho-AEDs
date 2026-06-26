@@ -11,6 +11,7 @@
 #include "../include/Compressao/Huffman.h"
 #include "../include/Criptografia/XOR.h"
 #include <csignal>
+#include <chrono>
 
 using namespace std;
 
@@ -152,6 +153,98 @@ void GameController::run() {
         }
     });
 
+    // Buscar por Nome usando KMP
+    svr.Get("/api/searchKMP", [this](const httplib::Request& req, httplib::Response& res) {
+        if (!req.has_param("name")) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Missing name parameter\"}", "application/json");
+            return;
+        }
+        string name = req.get_param_value("name");
+        vector<Game> games = dao.searchAllByPatternKMP(name);
+
+        if (!games.empty()) {
+            string json = "{\"games\":[";
+            for(size_t i = 0; i < games.size(); i++) {
+                json += gameToJson(games[i]);
+                if(i < games.size() - 1) json += ",";
+            }
+            json += "]}";
+            res.set_content(json, "application/json");
+        } else {
+            res.status = 404;
+            res.set_content("{\"error\":\"Game not found\"}", "application/json");
+        }
+    });
+
+    // Buscar por Nome usando Boyer-Moore
+    svr.Get("/api/searchBM", [this](const httplib::Request& req, httplib::Response& res) {
+        if (!req.has_param("name")) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Missing name parameter\"}", "application/json");
+            return;
+        }
+        string name = req.get_param_value("name");
+        vector<Game> games = dao.searchAllByPatternBM(name);
+
+        if (!games.empty()) {
+            string json = "{\"games\":[";
+            for(size_t i = 0; i < games.size(); i++) {
+                json += gameToJson(games[i]);
+                if(i < games.size() - 1) json += ",";
+            }
+            json += "]}";
+            res.set_content(json, "application/json");
+        } else {
+            res.status = 404;
+            res.set_content("{\"error\":\"Game not found\"}", "application/json");
+        }
+    });
+
+    // Benchmark de Busca (Executa os 3 algoritmos e mede o tempo)
+    svr.Get("/api/benchmarkSearch", [this](const httplib::Request& req, httplib::Response& res) {
+        if (!req.has_param("name")) {
+            res.status = 400;
+            res.set_content("{\"error\":\"Missing name parameter\"}", "application/json");
+            return;
+        }
+        string name = req.get_param_value("name");
+        
+        // 1. Busca Sequencial Padrão
+        auto startSeq = chrono::high_resolution_clock::now();
+        vector<Game> gamesSeq = dao.searchAllByName(name);
+        auto endSeq = chrono::high_resolution_clock::now();
+        auto durationSeq = chrono::duration_cast<chrono::microseconds>(endSeq - startSeq).count();
+
+        // 2. Busca KMP
+        auto startKmp = chrono::high_resolution_clock::now();
+        vector<Game> gamesKmp = dao.searchAllByPatternKMP(name);
+        auto endKmp = chrono::high_resolution_clock::now();
+        auto durationKmp = chrono::duration_cast<chrono::microseconds>(endKmp - startKmp).count();
+
+        // 3. Busca Boyer-Moore
+        auto startBm = chrono::high_resolution_clock::now();
+        vector<Game> gamesBm = dao.searchAllByPatternBM(name);
+        auto endBm = chrono::high_resolution_clock::now();
+        auto durationBm = chrono::duration_cast<chrono::microseconds>(endBm - startBm).count();
+
+        // Monta JSON com tempos (convertendo microssegundos para milissegundos) e jogos encontrados
+        string json = "{";
+        json += "\"time_sequential\":" + to_string(durationSeq / 1000.0) + ",";
+        json += "\"time_kmp\":" + to_string(durationKmp / 1000.0) + ",";
+        json += "\"time_bm\":" + to_string(durationBm / 1000.0) + ",";
+        
+        json += "\"games\":[";
+        // Usamos a lista resultante da sequencial, ja que devem ser iguais
+        for(size_t i = 0; i < gamesSeq.size(); i++) {
+            json += gameToJson(gamesSeq[i]);
+            if(i < gamesSeq.size() - 1) json += ",";
+        }
+        json += "]}";
+        
+        res.set_content(json, "application/json");
+    });
+
     // Buscar por ID
     svr.Get("/api/searchById", [this](const httplib::Request& req, httplib::Response& res) {
         if (!req.has_param("id")) {
@@ -203,7 +296,7 @@ void GameController::run() {
             
             dao.remove(name);
             
-            res.set_content("{\"message\":\"Game deleted successfully\", \"libraryEntriesRemoved\":" 
+            res.set_content("{\"message\":\"Game deleted\", \"libraryEntriesRemoved\":" 
                 + to_string(libRemoved) + ", \"reviewsRemoved\":" + to_string(revRemoved) + "}", "application/json");
         } else {
             res.status = 404;
@@ -261,7 +354,7 @@ void GameController::run() {
             g.setActive(true);
             
             dao.create(g);
-            res.set_content("{\"message\":\"Game added successfully\", \"appid\":" + to_string(g.appid) + "}", "application/json");
+            res.set_content("{\"message\":\"Game added\", \"appid\":" + to_string(g.appid) + "}", "application/json");
         } catch (exception& e) {
             res.status = 400;
             res.set_content("{\"error\":\"Invalid payload\"}", "application/json");
@@ -346,7 +439,7 @@ void GameController::run() {
             if (!tagsStr.empty()) g.steamspy_tags = split(tagsStr);
             
             if (dao.update(name, g)) {
-                res.set_content("{\"message\":\"Game updated successfully\"}", "application/json");
+                res.set_content("{\"message\":\"Game updated\"}", "application/json");
             } else {
                 res.status = 500;
                 res.set_content("{\"error\":\"Failed to update game\"}", "application/json");
@@ -567,7 +660,7 @@ void GameController::run() {
         string keyFile = "chave_xor.key";
         
         if (XOR::criptografar(originalFile, encFile, keyFile)) {
-            res.set_content("{\"message\":\"Criptografia realizada com sucesso.\"}", "application/json");
+            res.set_content("{\"message\":\"Criptografia realizada.\"}", "application/json");
         } else {
             res.status = 500;
             res.set_content("{\"error\":\"Erro na criptografia\"}", "application/json");
@@ -580,7 +673,7 @@ void GameController::run() {
         string keyFile = "chave_xor.key";
         
         if (XOR::descriptografar(encFile, restFile, keyFile)) {
-            res.set_content("{\"message\":\"Descriptografia realizada com sucesso.\"}", "application/json");
+            res.set_content("{\"message\":\"Descriptografia realizada.\"}", "application/json");
         } else {
             res.status = 500;
             res.set_content("{\"error\":\"Erro na descriptografia. Verifique se os arquivos de chave e banco criptografado existem.\"}", "application/json");

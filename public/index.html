@@ -35,11 +35,18 @@
 
             <div class="search-box glass-panel">
                 <select id="search-type">
-                    <option value="name">Nome</option>
+                    <option value="name">Nome (Sequencial)</option>
+                    <option value="name_kmp">Nome (KMP)</option>
+                    <option value="name_bm">Nome (Boyer-Moore)</option>
                     <option value="id">ID</option>
                 </select>
                 <input type="text" id="search-input" placeholder="Buscar...">
-                <button class="btn-primary" onclick="searchGame()">Pesquisar</button>
+                <button onclick="searchGame()" class="btn-primary">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+                <button onclick="benchmarkSearch()" class="btn-secondary" title="Compara o tempo dos algoritmos" style="background: var(--primary); color: var(--text);">
+                    <i class="fas fa-stopwatch"></i> Benchmark
+                </button>
             </div>
 
             <div class="filter-box glass-panel mt-2">
@@ -48,6 +55,24 @@
                     <input type="number" id="min-price" placeholder="Min $" step="0.01">
                     <input type="number" id="max-price" placeholder="Max $" step="0.01">
                     <button class="btn-secondary" onclick="searchByRange()">Filtrar por Preço</button>
+                </div>
+            </div>
+
+            <div id="benchmark-results" class="glass-panel" style="display: none; margin-top: 2rem;">
+                <h2><i class="fas fa-stopwatch"></i> Resultados do Benchmark</h2>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem; justify-content: space-around;">
+                    <div class="stat-card">
+                        <div class="stat-label">Sequencial Padrão</div>
+                        <div class="stat-value" id="bench-seq">-- ms</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Knuth-Morris-Pratt</div>
+                        <div class="stat-value" id="bench-kmp">-- ms</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Boyer-Moore</div>
+                        <div class="stat-value" id="bench-bm">-- ms</div>
+                    </div>
                 </div>
             </div>
 

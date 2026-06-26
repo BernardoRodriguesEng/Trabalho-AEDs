@@ -28,35 +28,77 @@ async function searchGame() {
     const input = document.getElementById('search-input').value;
     if(!input) return showToast("Digite um termo para busca", true);
 
-    const url = type === 'name' ? `/api/searchByName?name=${encodeURIComponent(input)}` : 
-                                 `/api/searchById?id=${input}`;
+    let url = "";
+    if (type === 'name') {
+        url = `/api/searchByName?name=${encodeURIComponent(input)}`;
+    } else if (type === 'name_kmp') {
+        url = `/api/searchKMP?name=${encodeURIComponent(input)}`;
+    } else if (type === 'name_bm') {
+        url = `/api/searchBM?name=${encodeURIComponent(input)}`;
+    } else {
+        url = `/api/searchById?id=${input}`;
+    }
     
     try {
         const res = await fetch(url);
         if(!res.ok) throw new Error("Jogo não encontrado");
         
         const data = await res.json();
-        if (type === 'name') {
+        if (type.startsWith('name')) {
             currentResults = data.games || [];
         } else {
             currentResults = data.game ? [data.game] : [];
         }
         
-        if (currentResults.length === 0) {
-            showToast("Nenhum resultado encontrado", true);
-            document.getElementById('search-result').classList.add('hidden');
-            return;
-        }
-
-        currentIndex = 0;
-        document.getElementById('search-result').classList.remove('hidden');
-        displayGame(currentResults[currentIndex]);
-        updateCycleCounter();
-        showToast(`Encontrado(s) ${currentResults.length} match(es)!`);
-    } catch(e) {
-        document.getElementById('search-result').classList.add('hidden');
+        document.getElementById('benchmark-results').style.display = 'none';
+        renderResults();
+    } catch (e) {
         showToast(e.message, true);
     }
+}
+
+async function benchmarkSearch() {
+    const input = document.getElementById('search-input').value;
+    if(!input) return showToast("Digite um termo para comparar o benchmark", true);
+
+    const type = document.getElementById('search-type').value;
+    if (type === 'id') {
+        return showToast("O benchmark é apenas para buscas por texto (Nome)", true);
+    }
+
+    try {
+        const res = await fetch(`/api/benchmarkSearch?name=${encodeURIComponent(input)}`);
+        if(!res.ok) throw new Error("Erro ao realizar benchmark");
+        
+        const data = await res.json();
+        
+        // Exibe os resultados
+        currentResults = data.games || [];
+        renderResults();
+
+        // Atualiza e exibe o modal de benchmark
+        document.getElementById('bench-seq').textContent = data.time_sequential.toFixed(2) + ' ms';
+        document.getElementById('bench-kmp').textContent = data.time_kmp.toFixed(2) + ' ms';
+        document.getElementById('bench-bm').textContent = data.time_bm.toFixed(2) + ' ms';
+        document.getElementById('benchmark-results').style.display = 'block';
+
+    } catch (e) {
+        showToast(e.message, true);
+    }
+}
+
+function renderResults() {
+    if (currentResults.length === 0) {
+        showToast("Nenhum resultado encontrado", true);
+        document.getElementById('search-result').classList.add('hidden');
+        return;
+    }
+
+    currentIndex = 0;
+    document.getElementById('search-result').classList.remove('hidden');
+    displayGame(currentResults[currentIndex]);
+    updateCycleCounter();
+    showToast(`Encontrado(s) ${currentResults.length} match(es)!`);
 }
 
 async function searchByRange() {
@@ -193,7 +235,7 @@ async function addGame() {
         
         if(!res.ok) throw new Error("Failed to add game");
         
-        showToast("Game added successfully!");
+        showToast("Game added.");
         document.getElementById('add-form').reset();
     } catch(e) {
         showToast(e.message, true);
@@ -274,7 +316,7 @@ async function updateGame() {
         });
         
         if(!res.ok) throw new Error("Failed to update game");
-        showToast("Game updated successfully!");
+        showToast("Game updated.");
     } catch(e) {
         showToast(e.message, true);
     }
@@ -325,7 +367,7 @@ async function deleteGame() {
         });
         
         if(!res.ok) throw new Error("Failed to delete game");
-        showToast("Game deleted successfully!");
+        showToast("Game deleted.");
         document.getElementById('del-name').value = '';
     } catch(e) {
         showToast(e.message, true);
