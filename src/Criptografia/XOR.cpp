@@ -39,7 +39,6 @@ bool XOR::criptografar(const string& arquivoEntrada, const string& arquivoSaida,
     // Inicializa a semente (seed) do gerador de numeros aleatorios basico do C
     srand(static_cast<unsigned int>(time(nullptr)));
 
-    // Arrays manuais no estilo C em vez de std::vector
     char bufferIn[TAMANHO_BUFFER];
     char bufferKey[TAMANHO_BUFFER];
     char bufferOut[TAMANHO_BUFFER];
@@ -75,7 +74,6 @@ bool XOR::descriptografar(const string& arquivoEntrada, const string& arquivoSai
         return false;
     }
 
-    // Arrays manuais no estilo C
     char bufferIn[TAMANHO_BUFFER];
     char bufferKey[TAMANHO_BUFFER];
     char bufferOut[TAMANHO_BUFFER];
